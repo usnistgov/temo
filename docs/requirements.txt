@@ -1,0 +1,7 @@
+breathe
+numpy
+jupyter
+nbconvert
+nbsphinx
+pandas
+matplotlib
