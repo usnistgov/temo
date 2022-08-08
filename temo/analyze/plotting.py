@@ -86,11 +86,13 @@ def calc_critical_curves(*, model, basemodel, ipure, show=False):
     vcvec = basemodel.get_vcvec()
     rhovec = np.array([0.0]*2)
     rhovec[ipure] = 1/vcvec[ipure]
-    df = pandas.DataFrame(teqp.trace_critical_arclength_binary(model, Tcvec[ipure], rhovec))
+    opt = teqp.TCABOptions()
+    opt.polish = True
+    df = pandas.DataFrame(teqp.trace_critical_arclength_binary(model, Tcvec[ipure], rhovec, '', opt))
     return df
 
 def isotherm(model, T, rhovecL, rhovecV, also_json=False):
-    opt = teqp.TVLEOptions(); opt.polish=True; opt.init_c = 1.0
+    opt = teqp.TVLEOptions(); opt.polish=True; opt.integration_order=5
     o = teqp.trace_VLE_isotherm_binary(model, T, rhovecL, rhovecV, opt)
     df = pandas.DataFrame(o)
     def calcz0(row, key):
