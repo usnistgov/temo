@@ -40,7 +40,7 @@ def calc_errrho(*, model, df, step=1, iterate=False):
                     break
                 rho += change
                 # print(res)
-            return (rho/row['rho / mol/m^3']-1)*100
+            return (1-rho/row['rho / mol/m^3'])*100
         else:
             return err_noniterative
     return df.iloc[0:len(df):step].apply(o, axis=1)
