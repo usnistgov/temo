@@ -227,6 +227,9 @@ def calc_errVLE(model, df, *, step=1):
         p_meas = row['p / Pa']
         try:
             code, rhovecLnew, rhovecVnew = teqp.mix_VLE_Tx(model, T, rhovecL, rhovecV, z, 1e-8, 1e-8, 1e-8, 1e-8, 10)
+            # Check for trivial solutions and penalize them
+            if np.max(np.abs(rhovecLnew - rhovecVnew)) < 1e-6*np.sum(rhovecLnew):
+                return 1e20
             p = rhovecLnew.sum()*model.get_R(z)*T + teqp.get_pr(model, T, rhovecLnew)
             p_err = (1-p/p_meas)*100
             if not np.isfinite(p_err):
