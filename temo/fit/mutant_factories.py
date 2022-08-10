@@ -6,6 +6,12 @@ def get_mutant_exponential(model, params, d=None, l=None):
     """ 
     Build a teqp-based exponential mutant from the model parameters 
 
+    Args:
+        model : The base model that is used to form the mutant
+        params (iterable): iterable that contains the parameters in a flat iterable object
+        d (list, optional): set of exponents on delta, optional
+        l (list, optional): set of exponents on delta in exponential, optional
+
     Term is of the form:
 
     .. math::
@@ -54,6 +60,11 @@ def get_mutant_exponential(model, params, d=None, l=None):
 def get_mutant_Gaussian(model, params, d=None):
     """ 
     Build a teqp-based Gaussian-bell-shaped mutant from the model parameters 
+
+    Args:
+        model : The base model that is used to form the mutant
+        params (iterable): iterable that contains the parameters in a flat iterable object
+        d (list, optional): set of exponents on delta, optional
 
     Term is of the form:
 
@@ -117,10 +128,14 @@ def chunked_iterable(iterable, size):
 
 def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=None):
     """ Build a teqp-based Gaussian+exponential mutant from the model parameters 
-    params: iterable that contains the parameters in a flat iterable object
-    Npoly: number of polynomial-like terms
-    Ngaussian: number of Gaussian terms
-    d: set of exponents on delta, optional
+    
+    Args:
+        model : The base model that is used to form the mutant
+        params (iterable): iterable that contains the parameters in a flat iterable object
+        Npoly (int): number of polynomial-like terms
+        Ngaussian (int): number of Gaussian terms
+        d (list, optional): set of exponents on delta, optional
+        l (list, optional): set of exponents on delta in exponential, optional
 
     Term is of the form:
 

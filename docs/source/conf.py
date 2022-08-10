@@ -48,7 +48,8 @@ subprocess.check_output(f'sphinx-apidoc -f -o api ../../temo', shell=True, cwd=h
 extensions = [
 'nbsphinx',
 'sphinx.ext.autodoc',
-'sphinx.ext.mathjax'
+'sphinx.ext.mathjax',
+'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
