@@ -130,6 +130,23 @@ def load_VLE(dataroot, identifier, identifiers, apply_skip=True, output_csv=None
 
     return df
 
+def load_CRIT(dataroot, identifier, identifiers, apply_skip=True, output_csv=None, verbosity=1, molar_masses=None):
+    """ Loader for critical point data """
+    df = read_and_subset(dataroot+'/CRIT.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip)
+
+    required_columns = ['T / K', 'p / Pa']
+    missing_columns = [col for col in required_columns if col not in df]
+    if missing_columns:
+        raise KeyError("Required column not found in CRIT data: " + str(missing_columns))
+
+    if output_csv is not None:
+        df.to_csv(output_csv, index=False)
+
+    if verbosity > 0:
+        print(f"Loaded {len(df)} rows from {dataroot+'/CRIT.csv'}")
+
+    return df
+
 # Parse B12data
 def get_B12(dataroot):
     df = pandas.read_csv(dataroot + '/B12.csv')
