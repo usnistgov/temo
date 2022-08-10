@@ -45,6 +45,21 @@ def calc_errrho(*, model, df, step=1, iterate=False):
             return err_noniterative
     return df.iloc[0:len(df):step].apply(o, axis=1)
 
+def calc_errrho_devp(*, model, df, step=1):
+    """ 
+    Deviation function from PVT data where the deviation is in pressure
+
+    Recommended for critical region where density deviations don't make sense
+    """
+    def o(row):
+        T = row['T / K']; rho = row['rho / mol/m^3']
+        z = np.array([row['z_1 / mole frac.'], row['z_2 / mole frac.']])
+        Ar0n = model.get_Ar02n(T, rho, z)
+        R = model.get_R(z)
+        p = rho*R*T*(1 + Ar0n[1])
+        return 100*(1-p/row['p / Pa'])
+    return df.iloc[0:len(df):step].apply(o, axis=1)
+
 def calc_errtraceSOS(model, df, *, step=1, isotherms):
     """ 
     Deviation function for speed of sound data from tracing VLE curves
