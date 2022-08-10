@@ -31,7 +31,7 @@ def load_SOS(dataroot, *, apply_skip=True, identifier, identifiers, output_csv=N
         print(f"Loaded {len(df)} rows from {dataroot+'/SOS.csv'}")
     return df
 
-def _density_processing(df):
+def _density_processing(df, molar_masses=None):
     allowed_press_cols = ['p / Pa', 'p / kPa', 'p / MPa', 'p / GPa']
     allowed_density_cols = ['rho / kg/m^3', 'rho / mol/m^3']
 
@@ -50,30 +50,30 @@ def _density_processing(df):
             f" provided for bibkey of {key}. You provided: {provided_density_cols}")
 
     def get_molar_density(row):
-        if ~pandas.isnull(row['rho / mol/m^3']):
+        if not pandas.isnull(row['rho / mol/m^3']):
             return row['rho / mol/m^3']
         else:
             M = row['z_1 / mole frac.']*molar_masses[0] + row['z_2 / mole frac.']*molar_masses[1]
-            return df['rho / kg/m^3']/df['M / kg/mol']
+            return row['rho / kg/m^3']/M
     
     # Convert to molar density
     df['rho / mol/m^3'] = df.apply(get_molar_density, axis=1)
 
     def get_p_Pa(row):
-        if 'p / Pa' in row and ~pandas.isnull(row['p / Pa']):
+        if 'p / Pa' in row and not pandas.isnull(row['p / Pa']):
             return row['p / Pa']
         else:
             factors = {'p / Pa': 1.0, 'p / kPa': 1e3, 'p / MPa': 1e6, 'p / GPa': 1e9}
             for k, factor in factors.items():
-                if k in row and ~pandas.isnull(row[k]):
+                if k in row and not pandas.isnull(row[k]):
                     return row[k]*factor
     df['p / Pa'] = df.apply(get_p_Pa, axis=1)
-    return df
+    return df.copy()
 
 def load_PVT(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=None, molar_masses, verbosity=1):
     """ Loader for p-v-T data """
     df = read_and_subset(dataroot+'/PVT.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip)
-    df = _density_processing(df)
+    df = _density_processing(df, molar_masses=molar_masses)
 
     if output_csv is not None:
         df.to_csv(output_csv, index=False)
@@ -86,7 +86,7 @@ def load_PVT(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=N
 def load_PVT_P(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=None, molar_masses, verbosity=1):
     """ Loader for p-v-T data with pressure deviations """
     df = read_and_subset(dataroot+'/PVT_P.csv', identifier=identifier, identifiers=identifiers, apply_skip=False)
-    df = _density_processing(df)
+    df = _density_processing(df, molar_masses=molar_masses)
 
     if output_csv is not None:
         df.to_csv(output_csv, index=False)
