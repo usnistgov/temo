@@ -1,6 +1,9 @@
 import timeit
 import numpy as np
 import teqp
+import scipy
+import pandas
+import scipy.interpolate
 
 def calc_errrho(*, model, df, step=1, iterate=False):
     """ 
@@ -269,3 +272,50 @@ def calc_errB12(model, df, *, step=1, z0):
         B12calc = teqp.get_B12vir(model, row['T / K'], z)
         return B12calc-row['B12 / m^3/mol']
     return df.iloc[0:len(df):step].apply(o, axis=1)
+
+def calc_errtracecrit(model, df, *, T0, rhovec0, errscheme, step=1):
+    """ 
+    Deviation function from tracing critical curve
+    """
+
+    tic = timeit.default_timer()
+    try:
+        opt = teqp.TCABOptions()
+        # print(dir(opt))
+        opt.init_dt = 100 # step in the arclength parameter
+        opt.integration_order = 5
+        opt.max_step_count = 300
+        # opt.rel_err = 1e-10
+        # opt.abs_err = 1e-13
+        opt.max_dt = 1000
+        opt.polish = True
+        
+        curveJSON = teqp.trace_critical_arclength_binary(model, T0, rhovec0, '', opt)
+        crit = pandas.DataFrame(curveJSON)
+        
+        if errscheme == 'log(p)xdistance':
+            rhotot = crit['rho0 / mol/m^3']+crit['rho1 / mol/m^3']
+            crit['z0 / mole frac.'] = crit['rho0 / mol/m^3']/rhotot
+            # We are tracing to the critical point, so both phases should have zero distance
+            XA = np.c_[crit['z0 / mole frac.'], crit['p / Pa']/1e6] # From the trace
+            XB = np.c_[df['z_1 / mole frac.'], df['p / Pa']/1e6] # From the measurements
+            e1 = float(scipy.spatial.distance.cdist(XA, XB).min(axis=0))
+            toc3 = timeit.default_timer()
+            return e1
+        elif errscheme == 'TdevP':
+            # Interpolate for given value of T to find p along critical curve, compare
+            # with the measured critical pressure
+            def get_err(row):
+                try:
+                    p_crit_curve = scipy.interpolate.interp1d(crit['T / K'], crit['p / Pa'])(row['T / K'])
+                    return 100*(1-p_crit_curve/row['p / Pa'])
+                except BaseException as be:
+                    # print(np.min(crit['T / K']), np.max(crit['T / K']))
+                    # print(be)
+                    return 100
+            return df.iloc[0:len(df):step].apply(get_err, axis=1)
+        else:
+            raise KeyError("Bad errscheme")
+    except BaseException as be:
+        print(be)
+        return 1000.0
