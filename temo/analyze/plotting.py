@@ -42,6 +42,9 @@ class ResultsParser:
 
     def to_csv(self, *, prefix):
         self.dfresults.to_csv(prefix+'.csv', index=False)
+    
+    def get_all_uid(self, path):
+        return [f.replace('_step0.json','') for f in glob.glob(path+'/*step0.json')]
 
     def get_lowest_cost_uid(self, *, prefilter=None):
         """ 
