@@ -89,19 +89,26 @@ def build_mutant(teqp_names : List[str], path : str, s : dict, *, flags=None):
     basemodel = teqp.build_multifluid_model(teqp_names, path, path+'/dev/mixtures/mixture_binary_pairs.json', flags)
     return teqp.build_multifluid_mutant(basemodel, s), basemodel
 
-def calc_critical_curves(*, model, basemodel, ipure, show=False):
+def calc_critical_curves(*, model, basemodel, ipure, integration_order):
     Tcvec = basemodel.get_Tcvec()
     vcvec = basemodel.get_vcvec()
-    rhovec = np.array([0.0]*2)
-    rhovec[ipure] = 1/vcvec[ipure]
+    opt = {"alternative_pure_index": ipure, "alternative_length": 2}
+    [T0, rho0] = model.solve_pure_critical(Tcvec[ipure], 1.0/vcvec[ipure], opt)
+    rhovec0 = np.array([0.0, 0])
+    rhovec0[ipure] = rho0
+
     opt = teqp.TCABOptions()
     opt.polish = True
-    df = pandas.DataFrame(teqp.trace_critical_arclength_binary(model, Tcvec[ipure], rhovec, '', opt))
+    opt.integration_order = integration_order
+    # opt.rel_err = 1e-7
+    opt.init_dt = 100
+    opt.max_dt = 1000
+    df = pandas.DataFrame(model.trace_critical_arclength_binary(T0, rhovec0, '', opt))
     return df
 
 def isotherm(model, T, rhovecL, rhovecV, also_json=False):
     opt = teqp.TVLEOptions(); opt.polish=True; opt.integration_order=5
-    o = teqp.trace_VLE_isotherm_binary(model, T, rhovecL, rhovecV, opt)
+    o = model.trace_VLE_isotherm_binary(T, rhovecL, rhovecV, opt)
     df = pandas.DataFrame(o)
     def calcz0(row, key):
         z = np.array(row[key])
