@@ -57,9 +57,7 @@ class ResultsParser:
         return df.iloc[imin]['uid']
 
     def get_stepfiles(self, uid):
-        def sort_paths(paths):
-            return list(zip(*sorted([(int(step.split('.')[0].split('step')[1]), step) for step in paths])))[1]
-
+        
         if self.path.endswith('.zip'):
             raise ValueError("zipfiles are not supported (don't compress as well as LZMA)'")
         elif self.path.endswith('.tar.xz'):
@@ -68,8 +66,15 @@ class ResultsParser:
                 for info in tar.getmembers():
                     filename = info.name
                     if 'step' in filename and '.json' in filename and uid in filename:
-                        stepfiles.append(json.load(tar.extractfile(info)))
+                        try:
+                            stepfiles.append(json.load(tar.extractfile(info)))
+                        except json.decoder.JSONDecodeError:
+                            print(f'Unable to parse {filename}')
+                stepfiles.sort(key=lambda x: -x['cost'])
+
         else:
+            def sort_paths(paths):
+                return list(zip(*sorted([(int(step.split('.')[0].split('step')[1]), step) for step in paths])))[1]
             paths = [f for f in glob.glob(self.path+'/*.json') if 'step' in f and uid in f]
             paths = sort_paths(paths)
             stepfiles = [json.load(open(f)) for f in paths]
