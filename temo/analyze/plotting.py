@@ -144,3 +144,38 @@ def plot_px_history(*, root, uid, stepfiles, override=None):
                 PDF.savefig(plt.gcf())
                 plt.close()
                 previous_cost = cost
+
+def plot_cost_history(basemodel, *, stepfiles, override=None):
+    iter_history = []; cost_history = []
+    for N, stepfile in enumerate(stepfiles):
+        iter_history.append(N+1)
+        cost_history.append(stepfile['cost'])
+    plt.plot(iter_history, cost_history)
+    plt.xscale('log')
+    plt.show()
+
+def plot_critical_locus_history(basemodel, *, stepfiles, override=None, dfcr=None):
+    previous_cost = 1e99
+    fname = ('' if not override else override) + f'histcrit.pdf'
+    with PdfPages(fname) as PDF:
+        for N, stepfile in enumerate(stepfiles):
+            N += 1
+            cost = stepfile['cost']
+            if previous_cost > 1e98 or cost < previous_cost:
+                print(cost)
+                mutant = teqp.build_multifluid_mutant(basemodel, stepfile['model'])
+                cr = calc_critical_curves(model=mutant, basemodel=basemodel, ipure=0, integration_order=1)
+                print(len(cr))
+                fig, ax = plt.subplots(1, 1)
+                cr['z_0 / mole frac.'] = cr['rho0 / mol/m^3']/(cr['rho0 / mol/m^3']+cr['rho1 / mol/m^3'])
+                ax.plot(cr['z_0 / mole frac.'], cr['p / Pa']/1e6)
+
+                if dfcr is not None:
+                    ax.plot(dfcr['z_1 / mole frac.'], dfcr['p / Pa']/1e6, 'o')
+
+                plt.gca().set(xlabel=r'$x_{1}$ / mole frac.', ylabel='$p$ / MPa')
+                # plt.legend(loc='best')
+                plt.title(f'{N} | C$\$$: {cost:0.4f}')
+                PDF.savefig(plt.gcf())
+                plt.close()
+                previous_cost = cost
