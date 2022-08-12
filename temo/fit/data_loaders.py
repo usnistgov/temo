@@ -139,6 +139,20 @@ def load_CRIT(dataroot, identifier, identifiers, apply_skip=True, output_csv=Non
     if missing_columns:
         raise KeyError("Required column not found in CRIT data: " + str(missing_columns))
 
+    def get_molar_density(row):
+        if 'rho / mol/m^3' in row and pandas.isnull(row['rho / mol/m^3']) and 'rho / kg/m^3' in row and pandas.isnull(row['rho / kg/m^3']):
+            return np.nan
+        elif 'rho / mol/m^3' in row and not pandas.isnull(row['rho / mol/m^3']):
+            return row['rho / mol/m^3']
+        elif 'rho / kg/m^3' in row and not pandas.isnull(row['rho / kg/m^3']) :
+            M = row['z_1 / mole frac.']*molar_masses[0] + row['z_2 / mole frac.']*molar_masses[1]
+            return row['rho / kg/m^3']/M
+        else:
+            return np.nan
+    
+    # Convert to molar density
+    df['rho / mol/m^3'] = df.apply(get_molar_density, axis=1)
+
     if output_csv is not None:
         df.to_csv(output_csv, index=False)
 
@@ -159,3 +173,4 @@ if __name__ == '__main__':
     load_PVT('NH3H2O', identifier='FLD', identifiers=identifiers, molar_masses=molar_masses, output_csv=None)
     load_SOS('NH3H2O', identifier='FLD', identifiers=identifiers, molar_masses=molar_masses, output_csv=None)
     load_VLE('NH3H2O', identifier='FLD', identifiers=identifiers, molar_masses=molar_masses, output_csv=None)
+    load_CRIT('NH3H2O', identifier='FLD', identifiers=identifiers, molar_masses=molar_masses, output_csv=None)
