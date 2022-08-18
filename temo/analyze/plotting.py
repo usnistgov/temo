@@ -89,7 +89,7 @@ def build_mutant(teqp_names : List[str], path : str, s : dict, *, flags=None):
     basemodel = teqp.build_multifluid_model(teqp_names, path, path+'/dev/mixtures/mixture_binary_pairs.json', flags)
     return teqp.build_multifluid_mutant(basemodel, s), basemodel
 
-def calc_critical_curves(*, model, basemodel, ipure, integration_order):
+def calc_critical_curves(*, model, basemodel, ipure, integration_order, polish_reltol_T = 100, polish_reltol_rho=100):
     Tcvec = basemodel.get_Tcvec()
     vcvec = basemodel.get_vcvec()
     opt = {"alternative_pure_index": ipure, "alternative_length": 2}
@@ -103,8 +103,26 @@ def calc_critical_curves(*, model, basemodel, ipure, integration_order):
     # opt.rel_err = 1e-7
     opt.init_dt = 100
     opt.max_dt = 1000
+    opt.polish_reltol_T = polish_reltol_T
+    opt.polish_reltol_rho = polish_reltol_rho
     df = pandas.DataFrame(model.trace_critical_arclength_binary(T0, rhovec0, '', opt))
     return df
+
+def plot_criticality(*, model, Tlim, rholim, z_1, TN=100, rhoN=100):
+    z = np.array([z_1, 1-z_1])
+    Tvec = np.linspace(*Tlim, TN)
+    rhovec = np.geomspace(*rholim, rhoN)
+    TT, DD = np.meshgrid(Tvec, rhovec)
+    Nrow, Ncol = TT.shape
+    C1 = np.zeros_like(TT)
+    C2 = np.zeros_like(TT)
+    for i in range(Nrow):
+        for j in range(Ncol):
+            C1[i,j], C2[i,j] = model.get_criticality_conditions(TT[i,j], DD[i,j]*z)
+    
+    plt.contour(TT, DD, C1, levels=[0], colors='k')
+    plt.contour(TT, DD, C2, levels=[0], colors='grey', linestyles=['dashed'])
+    plt.show()
 
 def isotherm(model, T, rhovecL, rhovecV, also_json=False):
     opt = teqp.TVLEOptions(); opt.polish=True; opt.integration_order=5
@@ -169,7 +187,7 @@ def plot_cost_history(basemodel, *, stepfiles, override=None):
     plt.xscale('log')
     plt.show()
 
-def plot_critical_locus_history(basemodel, *, stepfiles, override=None, dfcr=None):
+def plot_critical_locus_history(basemodel, *, stepfiles, override=None, dfcr=None, ylim=None):
     previous_cost = 1e99
     fname = ('' if not override else override) + f'histcrit.pdf'
     with PdfPages(fname) as PDF:
@@ -191,6 +209,8 @@ def plot_critical_locus_history(basemodel, *, stepfiles, override=None, dfcr=Non
                 plt.gca().set(xlabel=r'$x_{1}$ / mole frac.', ylabel='$p$ / MPa')
                 # plt.legend(loc='best')
                 plt.title(f'{N} | C$\$$: {cost:0.4f}')
+                if ylim:
+                    plt.ylim(*ylim)
                 PDF.savefig(plt.gcf())
                 plt.close()
                 previous_cost = cost
