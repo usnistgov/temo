@@ -3,13 +3,15 @@ import os
 import pandas
 import numpy as np 
 
-def add_homogenous_density_REFPROP(df, *, RP):
+def add_homogeneous_density_REFPROP(df, *, RP):
     def add_rho(row):
         T = row['T / K']; p = row['p / Pa']
         z_1 = row['z_1 / mole frac.']
         z = np.array([z_1, 1-z_1])
         r = RP.REFPROPdll('', 'TP','D',RP.MOLAR_BASE_SI, 0,0,T,p,z)
         if r.ierr > 0:
+            print(r.herr)
+            return np.nan
             raise ValueError(r.herr)
         return r.Output[0]
     df['rho(EOS) / mol/m^3'] = df.apply(add_rho, axis=1)
@@ -17,7 +19,7 @@ def add_homogenous_density_REFPROP(df, *, RP):
 
 def add_Ao20_REFPROP(df, *, RP):
     def add_Ao20(row):
-        T = row['T / K']; p = row['p / Pa']
+        T = row['T / K']
         z_1 = row['z_1 / mole frac.']
         z = np.array([z_1, 1-z_1])
         r = RP.REFPROPdll('', 'TD','PHIG20',RP.MOLAR_BASE_SI, 0,0,T,0,z)
