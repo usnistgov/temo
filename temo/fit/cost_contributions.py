@@ -57,9 +57,9 @@ def calc_errrho_devp(*, model, df, step=1):
     def o(row):
         T = row['T / K']; rho = row['rho / mol/m^3']
         z = np.array([row['z_1 / mole frac.'], row['z_2 / mole frac.']])
-        Ar0n = model.get_Ar02n(T, rho, z)
+        Ar01 = model.get_Ar01(T, rho, z)
         R = model.get_R(z)
-        p = rho*R*T*(1 + Ar0n[1])
+        p = rho*R*T*(1 + Ar01)
         return 100*(1-p/row['p / Pa'])
     return df.iloc[0:len(df):step].apply(o, axis=1)
 
@@ -162,6 +162,8 @@ def calc_errtracecrit(model, df, *, T0, rhovec0, errscheme, step=1):
         # opt.abs_err = 1e-13
         opt.max_dt = 1000
         opt.polish = True
+        opt.polish_reltol_T = 100 # very generous polishing bounds
+        opt.polish_reltol_rho = 100 # vey generous polishing bounds
         
         curveJSON = model.trace_critical_arclength_binary(T0, rhovec0, '', opt)
         crit = pandas.DataFrame(curveJSON)
