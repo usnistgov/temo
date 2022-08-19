@@ -210,6 +210,25 @@ def calc_errcritPVT(model, df, *, step=1):
             return 0
     return df.iloc[0:len(df):step].apply(o, axis=1)
 
+def calc_err_critisoT(model, df, *, step=1):
+    """ 
+    Deviation function for critical points, tracing from a pure
+    fluid endpoint. Tracing the isotherms ensures that
+    the isotherms are well-behaved in the critical region. While
+    the isotherm tracing to the critical point is relatively slow,
+    it is really important to ensure well-shaped isotherms in the
+    critical region
+    """
+    def o(row):
+        opt = teqp.TVLEOptions(); opt.polish=True; opt.integration_order=5; 
+        opt.calc_criticality=True; opt.max_steps=200; opt.terminate_unstable=True
+        rhovecL = np.array([row['rhoL_pure_1 / mol/m^3'], row['rhoL_pure_2 / mol/m^3']])
+        rhovecV = np.array([row['rhoV_pure_1 / mol/m^3'], row['rhoV_pure_2 / mol/m^3']])
+        o = model.trace_VLE_isotherm_binary(row['T / K'], rhovecL, rhovecV, opt)
+        d = pandas.DataFrame(o)
+        return 100*(1-np.max(d['pL / Pa'])/row['p / Pa'])
+    return df.iloc[0:len(df):step].apply(o, axis=1)
+
 def calc_errcritPT(model, df, *, step=1):
     """ 
     Deviation function from critical points for which temperature 
