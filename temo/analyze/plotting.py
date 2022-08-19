@@ -108,7 +108,7 @@ def calc_critical_curves(*, model, basemodel, ipure, integration_order, polish_r
     df = pandas.DataFrame(model.trace_critical_arclength_binary(T0, rhovec0, '', opt))
     return df
 
-def plot_criticality(*, model, Tlim, rholim, z_1, TN=100, rhoN=100):
+def plot_criticality(*, model, Tlim, rholim, z_1, TN=100, rhoN=100, ax=None, show=True):
     z = np.array([z_1, 1-z_1])
     Tvec = np.linspace(*Tlim, TN)
     rhovec = np.geomspace(*rholim, rhoN)
@@ -119,7 +119,36 @@ def plot_criticality(*, model, Tlim, rholim, z_1, TN=100, rhoN=100):
     for i in range(Nrow):
         for j in range(Ncol):
             C1[i,j], C2[i,j] = model.get_criticality_conditions(TT[i,j], DD[i,j]*z)
-    
+    if ax is None:
+        ax = plt.gca()
+    ax.contour(DD, TT, C1, levels=[0], colors='k')
+    ax.contour(DD, TT, C2, levels=[0], colors='grey', linestyles=['dashed'])
+    ax.set(xlabel=r'$\rho$ / mol/m$^3$', ylabel='$T$ / K')
+    ax.set_title(f'$z_1$: {z_1:0.5f} mole frac.')
+    if show:
+        plt.show()
+
+def plot_criticality_constT(*, T, model, zlim=(0,1), rholim, zN=100, rhoN=100, ax=None, show=True):
+    zvec = np.linspace(*zlim, zN)
+    rhovec = np.geomspace(*rholim, rhoN)
+    ZZ, DD = np.meshgrid(zvec, rhovec)
+    Nrow, Ncol = ZZ.shape
+    C1 = np.zeros_like(ZZ)
+    C2 = np.zeros_like(ZZ)
+    for i in range(Nrow):
+        for j in range(Ncol):
+            z_1 = ZZ[i,j]
+            z = np.array([z_1, 1-z_1])
+            C1[i,j], C2[i,j] = model.get_criticality_conditions(T, DD[i,j]*z)
+    if ax is None:
+        ax = plt.gca()
+    ax.contour(DD, ZZ, C1, levels=[0], colors='k')
+    ax.contour(DD, ZZ, C2, levels=[0], colors='grey', linestyles=['dashed'])
+    ax.set(xlabel=r'$\rho$ / mol/m$^3$', ylabel='$z_1$ / mole frac.')
+    ax.set_title(f'$T$: {T:0.5f} K')
+    if show:
+        plt.show()
+
     plt.contour(TT, DD, C1, levels=[0], colors='k')
     plt.contour(TT, DD, C2, levels=[0], colors='grey', linestyles=['dashed'])
     plt.show()
