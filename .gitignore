@@ -1,2 +1,5 @@
 run*
 docs/source/api
+__pycache__
+NH3H2O
+results
