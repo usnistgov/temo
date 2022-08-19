@@ -149,12 +149,9 @@ def plot_criticality_constT(*, T, model, zlim=(0,1), rholim, zN=100, rhoN=100, a
     if show:
         plt.show()
 
-    plt.contour(TT, DD, C1, levels=[0], colors='k')
-    plt.contour(TT, DD, C2, levels=[0], colors='grey', linestyles=['dashed'])
-    plt.show()
-
-def isotherm(model, T, rhovecL, rhovecV, also_json=False):
-    opt = teqp.TVLEOptions(); opt.polish=True; opt.integration_order=5
+def isotherm(model, T, rhovecL, rhovecV, also_json=False, crit_threshold=5e-8) -> pandas.DataFrame:
+    opt = teqp.TVLEOptions(); opt.polish=True; opt.integration_order=5; opt.calc_criticality = True
+    opt.terminate_unstable = True
     o = model.trace_VLE_isotherm_binary(T, rhovecL, rhovecV, opt)
     df = pandas.DataFrame(o)
     def calcz0(row, key):
@@ -163,6 +160,9 @@ def isotherm(model, T, rhovecL, rhovecV, also_json=False):
         return z0
     df['x0 / mole frac.'] = df.apply(calcz0, axis=1, key='rhoL / mol/m^3')
     df['y0 / mole frac.'] = df.apply(calcz0, axis=1, key='rhoV / mol/m^3')
+    df['too_critical'] = df.apply(lambda row: (abs(row['crit. conditions L'][0]) < crit_threshold), axis=1)
+    first_too_critical = np.argmax(df['too_critical'])
+    df = df.iloc[0:(first_too_critical if first_too_critical else len(df))]
     if also_json:
         return df, o 
     else:
