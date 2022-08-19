@@ -29,6 +29,23 @@ def add_Ao20_REFPROP(df, *, RP):
     df['Ao20'] = df.apply(add_Ao20, axis=1)
     return df
 
+def add_pure_crit_REFPROP(df, *, RP, ifluid):
+    def add(row):
+        T = row['T / K']
+        z = np.array([0.0, 0.0])
+        z[ifluid] = 1
+        r = RP.REFPROPdll('', 'TQ','DLIQ;DVAP',RP.MOLAR_BASE_SI, 0,0,T,0,z)
+        rhovecL = np.array([0.0, 0.0])
+        rhovecL[ifluid] = r.Output[0]
+        rhovecV = np.array([0.0, 0.0])
+        rhovecV[ifluid] = r.Output[1]
+        
+        if r.ierr > 0:
+            raise ValueError(r.herr)
+        return rhovecL[0], rhovecL[1], rhovecV[0], rhovecV[1]
+    df[['rhoL_pure_1 / mol/m^3','rhoL_pure_2 / mol/m^3','rhoV_pure_1 / mol/m^3','rhoV_pure_2 / mol/m^3']] = df.apply(add, axis=1, result_type='expand')
+    return df
+
 def add_coexisting_concentrations_REFPROP(df, *, RP, Q=0):
     # Store guess values for densities given the existing model in REFPROP
     def add_rhos(row):
