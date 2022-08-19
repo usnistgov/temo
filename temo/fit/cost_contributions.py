@@ -95,7 +95,6 @@ def calc_errSOS(model, df, *, step=1, max_iter=10):
         Ar01 = Ar0n[1]; Ar02 = Ar0n[2]
         Ar11 = model.get_Ar11(T, rho, z)
         Ar20 = model.get_Ar20(T, rho, z)
-        R = model.get_R(z)
 
         # M*w^2/(R*T) where w is the speed of sound
         # from the definition w = sqrt(dp/drho|s)
