@@ -102,6 +102,11 @@ class DataVault():
         # errcrit = costs.calc_errtracecrit(df=self.df_CRIT, model=mutant, T0=T0, rhovec0=rhovec0, errscheme='TdevP')
         # costcrit = np.abs(errcrit).mean()
 
+        costcritisoT = 0
+        errcrit = costs.calc_err_critisoT(df=self.df_CRIT, model=mutant, step=5)
+        errcrit *= get_weight(self.df_CRIT)
+        costcritisoT = np.abs(errcrit).mean()*10
+
         costcritpts = 0
         # errcrit = costs.calc_errcritPT(df=self.df_CRIT, model=mutant)
         # errcrit *= get_weight(self.df_CRIT)
@@ -113,7 +118,7 @@ class DataVault():
 
         # print(f'[timing] mutant: {time_mutant} PVT: {time_PVT} PVT_P: {time_PVT_P} SOS: {time_SOS} VLE: {time_VLE}')
 
-        cost = 4*costrho + costrho_P + 1*costSOS + 1*costVLE + costB12 + costcritpts + costcrit
+        cost = 4*costrho + costrho_P + 1*costSOS + 1*costVLE + costB12 + costcritpts + costcrit + costcritisoT
         # cost = costcrit
 
         return cost
@@ -180,7 +185,8 @@ def do_fit(FLDs, deptype, Ndep, root, *, Nrep=1, dv, mutant_kwargs={}):
                     AAD_PVT_P = np.mean(np.abs(cost_contributions.calc_errrho_devp(model=mutant, df=dv.df_PVT_P, step=dv.step_PVT_P)))
                     AAD_SOS = np.mean(np.abs(cost_contributions.calc_errSOS(model=mutant, df=dv.df_SOS, step=dv.step_SOS, max_iter=10)))
                     AAD_VLE = np.mean(np.abs(cost_contributions.calc_errVLE(model=mutant, df=dv.df_VLE, step=dv.step_VLE)))
-                    print(f"AAD(PVT): {AAD_PVT:0.2f} %; AAD(PVT_P): {AAD_PVT_P:0.2f} %; AAD(SOS): {AAD_SOS:0.2f} %; AAD(VLE): {AAD_VLE:0.2f} %")
+                    AAD_CRIT_ISOT = np.mean(np.abs(cost_contributions.calc_err_critisoT(model=mutant, df=dv.df_CRIT, step=5)))
+                    print(f"AAD(PVT): {AAD_PVT:0.2f} %; AAD(PVT_P): {AAD_PVT_P:0.2f} %; AAD(SOS): {AAD_SOS:0.2f} %; AAD(VLE): {AAD_VLE:0.2f} %; AAD(CRIT_ISO_T): {AAD_CRIT_ISOT:0.2f} %")
                     with open(f'{root}/{uid}_step{self.step_number}.json', 'w') as fp:
                         fp.write(json.dumps({
                             'x': x,
