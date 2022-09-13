@@ -243,3 +243,38 @@ def plot_critical_locus_history(basemodel, *, stepfiles, override=None, dfcr=Non
                 PDF.savefig(plt.gcf())
                 plt.close()
                 previous_cost = cost
+
+def plot_all_dilute_neff(z_1, *, models, aliases):
+    assert(len(models) == len(aliases))
+    Tvec = np.geomspace(250, 20000)
+    for model, alias in zip(models, aliases):
+        z = np.array([z_1, 1-z_1])
+        neff = [model.get_neff(T, 1e-6, z) for T in Tvec]
+        plt.plot(Tvec, neff, label=alias)
+    plt.xscale('log')
+    plt.legend(loc='best')
+    plt.ylim(0,20)
+    plt.gca().set(xlabel='$T$ / K', ylabel=r'$n_{\rm eff}$')
+    plt.show()
+
+def plot_all_reducing_functions(*, models, aliases, yvar = 'rho'):
+    assert(len(models) == len(aliases))
+    Tvec = np.geomspace(250, 20000)
+    fig, (axT, axv) = plt.subplots(2,1,sharex=True)
+    for model, alias in zip(models, aliases):
+        z1vec = np.linspace(1e-10,1.0-1e-10,1000)
+        Tr = [model.get_Tr(np.array([z_1,1-z_1])) for z_1 in z1vec]
+        rhor = np.array([model.get_rhor(np.array([z_1,1-z_1])) for z_1 in z1vec])
+        axT.plot(z1vec, Tr, label=alias)
+        if yvar == 'rho':
+            axv.plot(z1vec, rhor, label=alias)
+        else:
+            axv.plot(z1vec, 1/rhor*1e6, label=alias)
+    axT.legend(loc='best')
+    axT.set(ylabel=r'$T_{\rm red}$ / K')
+    if yvar == 'rho':
+        axv.set(xlabel=r'$z_1$ / mole frac.', ylabel=r'$\rho_{\rm red}$ / mol/m$^3$')
+    else:
+        axv.set(xlabel=r'$z_1$ / mole frac.', ylabel=r'$v_{\rm red}$ / cm$^3$/mol')
+    plt.savefig('reducing_functions.pdf')
+    plt.show()
