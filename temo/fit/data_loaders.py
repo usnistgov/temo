@@ -38,7 +38,7 @@ def load_SOS(dataroot, *, apply_skip=True, identifier, identifiers, output_csv=N
             for k, factor in factors.items():
                 if k in row and not pandas.isnull(row[k]):
                     return row[k]*factor
-        raise ValueError("no pressure was specified; allowed values are:"+factors.keys())
+            raise ValueError("no pressure was specified; allowed values are:"+factors.keys())
     df['p / Pa'] = df.apply(get_p_Pa, axis=1)
     
     return df
@@ -79,6 +79,7 @@ def _density_processing(df, molar_masses=None):
             for k, factor in factors.items():
                 if k in row and not pandas.isnull(row[k]):
                     return row[k]*factor
+            raise ValueError("no pressure was specified; allowed values are:"+factors.keys())
     df['p / Pa'] = df.apply(get_p_Pa, axis=1)
     return df.copy()
 
