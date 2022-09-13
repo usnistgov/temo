@@ -4,7 +4,10 @@ dependencies:
   - matplotlib
   - scipy
   - pip
+  - pandas
   #- jupyter # for local testing, uncomment, for binder, not needed
   #- notebook # for local testing, uncomment, for binder, not needed
   - pip:
+    - teqp
+    - CoolProp
     - "git+https://github.com/usnistgov/temo.git"
