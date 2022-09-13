@@ -115,13 +115,18 @@ def calc_errVLE(model, df, *, step=1):
         x_0 = row['x_1 / mole frac.']
         z = np.array([x_0, 1-x_0])
         p_meas = row['p / Pa']
+
         try:
-            code, rhovecLnew, rhovecVnew = model.mix_VLE_Tx(T, rhovecL, rhovecV, z, 1e-8, 1e-8, 1e-8, 1e-8, 10)
+            code, rhovecLnew, rhovecVnew = model.mix_VLE_Tx(T, rhovecL, rhovecV, z, 1e-8, 1e-8, 1e-8, 1e-8, 20)
             # Check for trivial solutions and penalize them
             if np.max(np.abs(rhovecLnew - rhovecVnew)) < 1e-6*np.sum(rhovecLnew):
                 return 1e20
             p = rhovecLnew.sum()*model.get_R(z)*T + model.get_pr(T, rhovecLnew)
+            y = rhovecVnew/rhovecVnew.sum()
+            pV = rhovecVnew.sum()*model.get_R(y)*T + model.get_pr(T, rhovecVnew)
             p_err = (1-p/p_meas)*100
+            if abs(pV/p-1) > 0.01:
+                print('bad solver!', code, pV/p-1)
             if not np.isfinite(p_err):
                 return 1e20
             else:
@@ -135,14 +140,60 @@ def calc_errVLE(model, df, *, step=1):
     # print(toc-tic, 's for vle error')
     return res
 
-def calc_errB12(model, df, *, step=1, z0):
+def calc_errVLE_x(model, df, *, step=1):
+    """ 
+    Deviation function from VLE data in the x direction
+    """
+    def o(row):
+        T = row['T / K']
+        p_meas = row['p / Pa']
+        rhovecL = np.array([row['rhoL_1 / mol/m^3'], row['rhoL_2 / mol/m^3']])
+        rhovecV = np.array([row['rhoV_1 / mol/m^3'], row['rhoV_2 / mol/m^3']])
+        try:
+            opt = teqp.MixVLETpFlags()
+            r = model.mix_VLE_Tp(T, p_meas, rhovecL, rhovecV, opt)
+            rhovecLnew = r.rhovecL; rhovecVnew = r.rhovecV
+            x = rhovecLnew/rhovecLnew.sum()
+            # Check for trivial solutions and penalize them
+            if np.max(np.abs(rhovecLnew - rhovecVnew)) < 1e-6*np.sum(rhovecLnew):
+                return 1e20
+            # Penalize failed iterations where the residuals are not all close to zero
+            if np.max(np.abs(r.r)) > 1e-2:
+                # print(r.num_iter, r.r, r.return_code)
+                # return 1e6
+                pass
+
+            x_err = 100*(x[0] - row['x_1 / mole frac.'])
+            # pL = rhovecL.sum()*model.get_R(x)*T*(1+model.get_Ar01(T, rhovecL.sum(), x))
+            # pV = rhovecV.sum()*model.get_R(y)*T*(1+model.get_Ar01(T, rhovecV.sum(), y))
+            # # Penalize failed iterations where the pressures are not equal
+            # if abs(pL/pV-1) > 0.01:
+            #     return 1e20
+            
+            if not np.isfinite(x_err) or x[0] > 1 or x[0] < 0:
+                return 1e20
+            else:
+                # print(x_err, row['x_1 / mole frac.'], x)
+                if np.abs(x_err) > 100:
+                    print(x_err)
+                return x_err
+        except BaseException as BE:
+            print(BE)
+            return 1e20
+    tic = timeit.default_timer()
+    res = df.iloc[0:len(df):step].apply(o, axis=1)
+    toc = timeit.default_timer()
+    # print(toc-tic, 's for vle error')
+    return res
+
+def calc_errB12(*, model, df, step=1, z0):
     """
     B12 should not have dependence on composition, but alas, it usually does
     """
     z = np.array([z0, 1-z0])
     def o(row):
         B12calc = model.get_B12vir(row['T / K'], z)
-        return B12calc-row['B12 / m^3/mol']
+        return (B12calc-row['B12 / m^3/mol'])
     return df.iloc[0:len(df):step].apply(o, axis=1)
 
 def calc_errtracecrit(model, df, *, T0, rhovec0, errscheme, step=1):
@@ -218,6 +269,12 @@ def calc_err_critisoT(model, df, *, step=1):
     the isotherm tracing to the critical point is relatively slow,
     it is really important to ensure well-shaped isotherms in the
     critical region
+
+    Two parts come into the deviation term:
+    1) The pressure is supposed to be close to the measured critical pressure
+    2) The isotherm needs to close, so that the liquid and vapor traces have
+       converged to the same composition given by the critical point. 
+       The slope dp/dx at the critical point should be zero, but this is not checked
     """
     def o(row):
         opt = teqp.TVLEOptions(); opt.polish=True; opt.integration_order=5; 
@@ -226,13 +283,25 @@ def calc_err_critisoT(model, df, *, step=1):
         rhovecV = np.array([row['rhoV_pure_1 / mol/m^3'], row['rhoV_pure_2 / mol/m^3']])
         o = model.trace_VLE_isotherm_binary(row['T / K'], rhovecL, rhovecV, opt)
         d = pandas.DataFrame(o)
-        return 100*(1-np.max(d['pL / Pa'])/row['p / Pa'])
+        ipmax = np.argmax(np.array(d['pL / Pa']))
+        pmax = d['pL / Pa'].iloc[ipmax]
+        deltaxL = np.abs(d['xV_0 / mole frac.'].iloc[ipmax] - row['z_1 / mole frac.'])
+        deltaxV = np.abs(d['xL_0 / mole frac.'].iloc[ipmax] - row['z_1 / mole frac.'])
+        if not np.isfinite(deltaxL):
+            deltaxL = 1e4
+        if not np.isfinite(deltaxV):
+            deltaxV = 1e4
+        if not np.isfinite(pmax):
+            pmax = 1e4
+        return np.abs(100*(1-pmax/row['p / Pa'])) + np.abs(deltaxL)*100 + np.abs(deltaxV)*100
     return df.iloc[0:len(df):step].apply(o, axis=1)
 
 def calc_errcritPT(model, df, *, step=1):
     """ 
     Deviation function from critical points for which temperature 
     and pressure are specified, and density guess is provided
+    The rho(T,p) solver is executed to solve for the matching
+    density and then the criticality conditions are checked
     """
     def o(row):
         z_1 = row['z_1 / mole frac.']
