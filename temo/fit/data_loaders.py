@@ -162,9 +162,12 @@ def load_CRIT(dataroot, identifier, identifiers, apply_skip=True, output_csv=Non
     return df
 
 # Parse B12data
-def get_B12(dataroot):
-    df = pandas.read_csv(dataroot + '/B12.csv')
-    df['B12 / m^3/mol'] = df['B12 / dm^3/mol']/1000
+def load_B12(dataroot, identifier, identifiers, apply_skip=True, output_csv=None, verbosity=1, molar_masses=None):
+    df = read_and_subset(dataroot+'/B12.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip)
+
+    if output_csv is not None:
+        df.to_csv(output_csv, index=False)
+
     return df.copy()
 
 if __name__ == '__main__':
