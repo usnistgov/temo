@@ -1,5 +1,5 @@
 from typing import List
-import tarfile, zipfile, json, glob
+import tarfile, zipfile, json, glob, os
 
 import pandas 
 import numpy as np
@@ -12,7 +12,7 @@ class ResultsParser:
 
     def __init__(self, path):
         """
-        path: path to a folder or a .7z or .zip archive of a folder
+        path: path to a folder or a .tar.xz or .zip archive of a folder
         """
         self.path = path
         self.dfresults = self.assess_from_path(path)
@@ -35,6 +35,9 @@ class ResultsParser:
                             results.append(json.load(myfile))
 
         else:
+            if not os.path.isdir(path):
+                raise ValueError("this is not a valid path: " + path)
+
             paths = [f for f in glob.glob(path+'/*.json') if 'step' not in f]
             results = [json.load(open(f)) for f in paths]
 
