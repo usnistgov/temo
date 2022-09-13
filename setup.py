@@ -1,5 +1,4 @@
-from distutils.core import setup
-import setuptools
+from setuptools import setup, find_packages
 
 """
 To upload: 
@@ -7,11 +6,10 @@ conda activate py38 && python setup.py bdist_wheel && conda deactivate && twine 
 """
 
 setup(name='temo',
-      version='0.0.1',
+      version='0.0.2',
       description='teqp-based model optimization',
       author='Ian H. Bell',
       author_email='ian.bell@nist.gov',
-      packages = ['temo'],
+      packages = find_packages(include=['temo*']),
       zip_safe = False
      )
-
