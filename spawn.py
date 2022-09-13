@@ -81,7 +81,7 @@ class Spawner(object):
             kwargs = input.get('kwargs',{})
             kwargs['pipe_stdio'] = p['pipe_stdio_theirs']
             p['proc'] = Guppy(p['pipe_theirs'], input['target'], *input['args'], **kwargs)
-            p['proc'].daemon = True
+            p['proc'].daemon = False
             p['proc'].start()
             self.processes.append(p)
             print(len(self.inputs), ' inputs remain')
