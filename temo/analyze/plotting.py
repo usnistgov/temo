@@ -154,18 +154,13 @@ def plot_criticality_constT(*, T, model, zlim=(0,1), rholim, zN=100, rhoN=100, a
 
 def isotherm(model, T, rhovecL, rhovecV, also_json=False, crit_threshold=5e-8) -> pandas.DataFrame:
     opt = teqp.TVLEOptions(); opt.polish=True; opt.integration_order=5; opt.calc_criticality = True
-    opt.terminate_unstable = True
+    opt.terminate_unstable = True; opt.max_steps=200; 
+
     o = model.trace_VLE_isotherm_binary(T, rhovecL, rhovecV, opt)
     df = pandas.DataFrame(o)
-    def calcz0(row, key):
-        z = np.array(row[key])
-        z0 = z[0]/z.sum()
-        return z0
-    df['x0 / mole frac.'] = df.apply(calcz0, axis=1, key='rhoL / mol/m^3')
-    df['y0 / mole frac.'] = df.apply(calcz0, axis=1, key='rhoV / mol/m^3')
-    df['too_critical'] = df.apply(lambda row: (abs(row['crit. conditions L'][0]) < crit_threshold), axis=1)
-    first_too_critical = np.argmax(df['too_critical'])
-    df = df.iloc[0:(first_too_critical if first_too_critical else len(df))]
+    # df['too_critical'] = df.apply(lambda row: (abs(row['crit. conditions L'][0]) < crit_threshold), axis=1)
+    # first_too_critical = np.argmax(df['too_critical'])
+    # df = df.iloc[0:(first_too_critical if first_too_critical else len(df))]
     if also_json:
         return df, o 
     else:
@@ -217,6 +212,7 @@ def plot_cost_history(basemodel, *, stepfiles, override=None):
         cost_history.append(stepfile['cost'])
     plt.plot(iter_history, cost_history)
     plt.xscale('log')
+    plt.xlabel('Iteration #')
     plt.show()
 
 def plot_critical_locus_history(basemodel, *, stepfiles, override=None, dfcr=None, ylim=None):
@@ -227,10 +223,11 @@ def plot_critical_locus_history(basemodel, *, stepfiles, override=None, dfcr=Non
             N += 1
             cost = stepfile['cost']
             if previous_cost > 1e98 or cost < previous_cost:
-                print(cost)
+                # print(cost)
                 mutant = teqp.build_multifluid_mutant(basemodel, stepfile['model'])
-                cr = calc_critical_curves(model=mutant, basemodel=basemodel, ipure=0, integration_order=1)
-                print(len(cr))
+
+                cr = calc_critical_curves(model=mutant, basemodel=basemodel, ipure=0, integration_order=5)
+                # print(len(cr))
                 fig, ax = plt.subplots(1, 1)
                 cr['z_0 / mole frac.'] = cr['rho0 / mol/m^3']/(cr['rho0 / mol/m^3']+cr['rho1 / mol/m^3'])
                 ax.plot(cr['z_0 / mole frac.'], cr['p / Pa']/1e6)
