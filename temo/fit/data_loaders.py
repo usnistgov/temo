@@ -8,16 +8,16 @@ def only_the_fluids(df, identifier, identifiers):
             df = df[df[key].isin(identifiers)]
     return df.copy()
 
-def read_and_subset(path, identifier, identifiers, apply_skip):
-    df = pandas.read_csv(path, comment='#')
+def read_and_subset(path, identifier, identifiers, apply_skip, sep=','):
+    df = pandas.read_csv(path, comment='#', sep=sep)
     df = only_the_fluids(df, identifier, identifiers)
     if 'skip' in df and apply_skip:
         df = df[pandas.isnull(df.skip)]
     return df
 
-def load_SOS(dataroot, *, apply_skip=True, identifier, identifiers, output_csv=None, molar_masses, verbosity=1):
+def load_SOS(dataroot, *, apply_skip=True, identifier, identifiers, output_csv=None, molar_masses, verbosity=1, sep=','):
     """ Loader for speed of sound data """
-    df = read_and_subset(dataroot+'/SOS.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip)
+    df = read_and_subset(dataroot+'/SOS.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip, sep=sep)
     z_1 = df['z_1 / mole frac.']
     df['M / kg/mol'] = z_1*molar_masses[0] + (1-z_1)*molar_masses[1]
     required_columns = ['T / K', 'Ao20', 'bibkey']
@@ -83,9 +83,9 @@ def _density_processing(df, molar_masses=None):
     df['p / Pa'] = df.apply(get_p_Pa, axis=1)
     return df.copy()
 
-def load_PVT(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=None, molar_masses, verbosity=1):
+def load_PVT(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=None, molar_masses, verbosity=1, sep=','):
     """ Loader for p-v-T data """
-    df = read_and_subset(dataroot+'/PVT.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip)
+    df = read_and_subset(dataroot+'/PVT.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip, sep=sep)
     df = _density_processing(df, molar_masses=molar_masses)
 
     if output_csv is not None:
@@ -96,9 +96,9 @@ def load_PVT(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=N
 
     return df
 
-def load_PVT_P(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=None, molar_masses, verbosity=1):
+def load_PVT_P(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=None, molar_masses, verbosity=1, sep=','):
     """ Loader for p-v-T data with pressure deviations """
-    df = read_and_subset(dataroot+'/PVT_P.csv', identifier=identifier, identifiers=identifiers, apply_skip=False)
+    df = read_and_subset(dataroot+'/PVT_P.csv', identifier=identifier, identifiers=identifiers, apply_skip=False, sep=sep)
     df = _density_processing(df, molar_masses=molar_masses)
 
     if output_csv is not None:
@@ -109,9 +109,9 @@ def load_PVT_P(dataroot, *, identifier, identifiers, apply_skip=True, output_csv
 
     return df
 
-def load_VLE(dataroot, identifier, identifiers, apply_skip=True, output_csv=None, verbosity=1, molar_masses=None):
+def load_VLE(dataroot, identifier, identifiers, apply_skip=True, output_csv=None, verbosity=1, molar_masses=None, sep=','):
     """ Loader for VLE data """
-    df = read_and_subset(dataroot+'/VLE.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip)
+    df = read_and_subset(dataroot+'/VLE.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip, sep=sep)
 
     required_columns = ['T / K', 'kind']
     missing_columns = [col for col in required_columns if col not in df]
@@ -143,9 +143,9 @@ def load_VLE(dataroot, identifier, identifiers, apply_skip=True, output_csv=None
 
     return df
 
-def load_CRIT(dataroot, identifier, identifiers, apply_skip=True, output_csv=None, verbosity=1, molar_masses=None):
+def load_CRIT(dataroot, identifier, identifiers, apply_skip=True, output_csv=None, verbosity=1, molar_masses=None, sep=','):
     """ Loader for critical point data """
-    df = read_and_subset(dataroot+'/CRIT.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip)
+    df = read_and_subset(dataroot+'/CRIT.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip, sep=sep)
 
     required_columns = ['T / K', 'p / Pa']
     missing_columns = [col for col in required_columns if col not in df]
@@ -175,8 +175,8 @@ def load_CRIT(dataroot, identifier, identifiers, apply_skip=True, output_csv=Non
     return df
 
 # Parse B12data
-def load_B12(dataroot, identifier, identifiers, apply_skip=True, output_csv=None, verbosity=1, molar_masses=None):
-    df = read_and_subset(dataroot+'/B12.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip)
+def load_B12(dataroot, identifier, identifiers, apply_skip=True, output_csv=None, verbosity=1, molar_masses=None, sep=','):
+    df = read_and_subset(dataroot+'/B12.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip, sep=sep)
 
     if output_csv is not None:
         df.to_csv(output_csv, index=False)
