@@ -138,6 +138,8 @@ def load_VLE(dataroot, identifier, identifiers, apply_skip=True, output_csv=None
             missing_columns = [col for col in required_columns if col not in gp]
             if missing_columns:
                 raise KeyError("Required column not found in DEW data: " + str(missing_columns))
+        else:
+            raise KeyError(f'Provided kind of "{kind}" is not in the set of {{"PTXY","BUB","DEW"}}')
 
     def get_p_Pa(row):
         if 'p / Pa' in row and not pandas.isnull(row['p / Pa']):
@@ -149,7 +151,7 @@ def load_VLE(dataroot, identifier, identifiers, apply_skip=True, output_csv=None
                     return row[k]*factor
             raise ValueError("no pressure was specified; allowed values are:"+factors.keys())
     df['p / Pa'] = df.apply(get_p_Pa, axis=1)
-
+    
     if output_csv is not None:
         df.to_csv(output_csv, index=False)
 
