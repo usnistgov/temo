@@ -99,6 +99,8 @@ def calc_errSOS(model, df, *, step=1, max_iter=10):
         # M*w^2/(R*T) where w is the speed of sound
         # from the definition w = sqrt(dp/drho|s)
         Mw2RT = 1 + 2*Ar01 + Ar02 - (1 + Ar01 - Ar11)**2/(Ao20 + Ar20)
+        if Mw2RT < 0:
+            return 1e6
         w = (Mw2RT*R*T/M)**0.5
 
         return (1-w/row['w / m/s'])*100
