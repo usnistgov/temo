@@ -3,9 +3,13 @@ import numpy as np
 import CoolProp.CoolProp as CP
 
 def only_the_fluids(df, identifier, identifiers):
+    num_matches = 0
     for key in df:
         if key.startswith(identifier):
             df = df[df[key].isin(identifiers)]
+            num_matches += 1
+    if num_matches == 0:
+        raise ValueError(f"Unable to match a single instance of your identifier root: {identifier}")
     return df.copy()
 
 def read_and_subset(path, identifier, identifiers, apply_skip, sep=','):
