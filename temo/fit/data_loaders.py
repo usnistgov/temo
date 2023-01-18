@@ -66,7 +66,7 @@ def _density_processing(df, molar_masses=None):
             f" provided for bibkey of {key}. You provided: {provided_density_cols}")
 
     def get_molar_density(row):
-        if not pandas.isnull(row['rho / mol/m^3']):
+        if 'rho / mol/m^3' in row and not pandas.isnull(row['rho / mol/m^3']):
             return row['rho / mol/m^3']
         else:
             M = row['z_1 / mole frac.']*molar_masses[0] + row['z_2 / mole frac.']*molar_masses[1]
