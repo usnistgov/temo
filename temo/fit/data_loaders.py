@@ -139,6 +139,17 @@ def load_VLE(dataroot, identifier, identifiers, apply_skip=True, output_csv=None
             if missing_columns:
                 raise KeyError("Required column not found in DEW data: " + str(missing_columns))
 
+    def get_p_Pa(row):
+        if 'p / Pa' in row and not pandas.isnull(row['p / Pa']):
+            return row['p / Pa']
+        else:
+            factors = {'p / Pa': 1.0, 'p / kPa': 1e3, 'p / MPa': 1e6, 'p / GPa': 1e9}
+            for k, factor in factors.items():
+                if k in row and not pandas.isnull(row[k]):
+                    return row[k]*factor
+            raise ValueError("no pressure was specified; allowed values are:"+factors.keys())
+    df['p / Pa'] = df.apply(get_p_Pa, axis=1)
+
     if output_csv is not None:
         df.to_csv(output_csv, index=False)
 
