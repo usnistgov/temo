@@ -33,6 +33,7 @@ def get_mutant_exponential(model, params, d=None, l=None):
         "0":{
             "1": {
                 "BIP":{
+                    "type": "GERG",
                     "betaT": params[0],
                     "gammaT": params[1],
                     "betaV": params[2],
@@ -95,6 +96,7 @@ def get_mutant_Gaussian(model, params, d=None):
         "0":{
             "1": {
                 "BIP":{
+                    "type": "GERG",
                     "betaT": params[0],
                     "gammaT": params[1],
                     "betaV": params[2],
@@ -127,7 +129,8 @@ def chunked_iterable(iterable, size):
         yield chunk
 
 def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=None):
-    """ Build a teqp-based Gaussian+exponential mutant from the model parameters 
+    """
+    Build a teqp-based Gaussian+exponential mutant from the model parameters
     
     Args:
         model : The base model that is used to form the mutant
@@ -209,10 +212,15 @@ def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=
     }
     return teqp.build_multifluid_mutant(model, s)
 
-def get_mutant_doubleexponential(model, params, *, d=None,ld=None):
-    """ Build a teqp-based double-exponential mutant from the model parameters 
-    params: iterable that contains the parameters in a flat iterable object
-    d: set of exponents on delta, optional
+def get_mutant_doubleexponential(model, params, *, d=None, ld=None):
+    """
+    Build a teqp-based double-exponential mutant from the model parameters
+    
+    Args:
+        model: the base model that is used to form the mutant
+        params: iterable that contains the parameters in a flat iterable object
+        d: set of exponents on delta, optional
+        ld (list, optional): set of exponents on delta in exponential, optional
     """
     depparams = np.array(params[4::])
     Ndep = len(depparams)//5
@@ -237,6 +245,7 @@ def get_mutant_doubleexponential(model, params, *, d=None,ld=None):
         "0":{
             "1": {
                 "BIP":{
+                    "type": "GERG",
                     "betaT": params[0],
                     "gammaT": params[1],
                     "betaV": params[2],
@@ -260,7 +269,14 @@ def get_mutant_doubleexponential(model, params, *, d=None,ld=None):
     return teqp.build_multifluid_mutant(model, s)
 
 def get_mutant_Gaussian_invariant(model, params, d=None):
-    """ Build a teqp-based Gaussian-bell-shaped mutant from the model parameters """
+    """ Build a teqp-based Gaussian-bell-shaped mutant from the model parameters and with an invariant reducing function
+    
+    Args:
+        model: the base model that is used to form the mutant
+        params: iterable that contains the parameters in a flat iterable object
+        d: set of exponents on delta, optional
+        
+    """
     depparams = np.array(params[4::])
     Nvar = 6 # How many variables are being fit
     Ndep = len(depparams)//Nvar # How many departure terms
