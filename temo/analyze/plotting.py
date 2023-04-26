@@ -121,6 +121,16 @@ class PairMinFilter:
         
         # And return the lowest cost result
         return pandas.DataFrame([df.sort_values(by='cost').iloc[0]])
+    
+class UidFilter:
+    def __init__(self, uid):
+        self.uid = uid
+
+    def __call__(self, df):
+        # Keep only the row that matches the given uid
+        matches_uid = df.apply(lambda row: tuple(row['pair']) == self.uid, axis=1)
+        df = df[matches_uid].copy()
+        return df 
 
 def build_mutant(teqp_names : List[str], path : str, spec: dict, *, flags=None):
     if flags is None:
