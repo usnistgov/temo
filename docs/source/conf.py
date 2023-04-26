@@ -18,7 +18,7 @@ on_rtd = True
 import sys
 here = os.path.dirname(__file__)
 sys.path.insert(0, os.path.abspath(here+'/../..'))
-
+os.environ['PYTHONPATH'] = os.path.abspath(here+'/../..')
 
 # -- Project information -----------------------------------------------------
 
