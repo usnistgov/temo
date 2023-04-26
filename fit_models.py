@@ -281,7 +281,7 @@ if __name__ == '__main__':
         # Serial
         Ndep = 3
         Npoly = Ndep
-        dvals = [1,2,3,4,5,6]
+        dvals = [1,2,3]
         d = list(roundrobin(*repeat(dvals, 3)))[0:Ndep] # [1,1,2,2,3,3...]
         kwargs = dict(Npoly=Npoly, Ngaussian=Ndep-Npoly, d=d, l=[1,1,1,1,2])
         do_fit(pairs[0], 'Gaussian+Exponential', Ndep, root, dv=dv, mutant_kwargs=kwargs)

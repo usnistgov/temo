@@ -6,6 +6,8 @@ Welcome to temo's documentation!
    :caption: Contents:
 
    getting_started/index
+   fitting/index
+   post/index
 
 Indices and tables
 ==================

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 import tarfile, zipfile, json, glob, os
 
 import pandas 
@@ -15,7 +15,17 @@ class ResultsParser:
         path: path to a folder or a .tar.xz or .zip archive of a folder
         """
         self.path = path
-        self.dfresults = self.assess_from_path(path)
+        self.jsonresults = self.assess_from_path(path)
+        self.dfresults = pandas.DataFrame(self.jsonresults)
+
+    def get_result(self, uid: str):
+        """
+        Get a particular run result, given by its uid
+        """
+        for result in self.jsonresults:
+            if result['uid'] == uid:
+                return result
+        raise ValueError
 
     def assess_from_path(self, path):
         if path.endswith('.tar.xz'):
@@ -41,7 +51,7 @@ class ResultsParser:
             paths = [f for f in glob.glob(path+'/*.json') if 'step' not in f]
             results = [json.load(open(f)) for f in paths]
 
-        return pandas.DataFrame(results)
+        return results
 
     def to_csv(self, *, prefix):
         self.dfresults.to_csv(prefix+'.csv', index=False)
@@ -63,6 +73,10 @@ class ResultsParser:
         return df.iloc[imin]['uid']
 
     def get_stepfiles(self, uid):
+        """
+        Args:
+            uid: The unique identifier for the run
+        """
         
         if self.path.endswith('.zip'):
             raise ValueError("zipfiles are not supported (don't compress as well as LZMA)'")
@@ -85,12 +99,38 @@ class ResultsParser:
             paths = sort_paths(paths)
             stepfiles = [json.load(open(f)) for f in paths]
         return stepfiles
+    
+    def get_df_VLE(self, **kwargs):
+        if self.path.endswith('.tar.xz'):
+            with tarfile.open(self.path, mode='r:xz') as tar:
+                for info in tar.getmembers():
+                    filename = info.name
+                    if 'fitdataroot' in filename and 'VLE' in filename:
+                        return pandas.read_csv(tar.extractfile(info), **kwargs)
+        else:
+            raise ValueError("zipfiles are not supported (don't compress as well as LZMA)'")
+    
+class PairMinFilter:
+    def __init__(self, pair):
+        self.pair = tuple(pair)
 
-def build_mutant(teqp_names : List[str], path : str, s : dict, *, flags=None):
+    def __call__(self, df):
+        # Keep only rows that match the pair
+        matches_pair = df.apply(lambda row: tuple(row['pair']) == self.pair, axis=1)
+        df = df[matches_pair].copy()
+        
+        # And return the lowest cost result
+        return pandas.DataFrame([df.sort_values(by='cost').iloc[0]])
+
+def build_mutant(teqp_names : List[str], path : str, spec: dict, *, flags=None):
     if flags is None:
         flags = {'estimate': 'Lorentz-Berthelot'}
     basemodel = teqp.build_multifluid_model(teqp_names, path, path+'/dev/mixtures/mixture_binary_pairs.json', flags)
-    return teqp.build_multifluid_mutant(basemodel, s), basemodel
+    basemodels = [teqp.build_multifluid_model([name], path, path+'/dev/mixtures/mixture_binary_pairs.json', flags) for name in teqp_names]
+
+    mutant = teqp.build_multifluid_mutant(basemodel, spec)
+    teqp.attach_model_specific_methods(mutant)
+    return mutant, basemodel, basemodels
 
 def calc_critical_curves(*, model, basemodel, ipure, integration_order, polish_reltol_T = 100, polish_reltol_rho=100):
     Tcvec = basemodel.get_Tcvec()
@@ -205,16 +245,6 @@ def plot_px_history(*, root, uid, stepfiles, override=None):
                 plt.close()
                 previous_cost = cost
 
-def plot_cost_history(basemodel, *, stepfiles, override=None):
-    iter_history = []; cost_history = []
-    for N, stepfile in enumerate(stepfiles):
-        iter_history.append(N+1)
-        cost_history.append(stepfile['cost'])
-    plt.plot(iter_history, cost_history)
-    plt.xscale('log')
-    plt.xlabel('Iteration #')
-    plt.show()
-
 def plot_critical_locus_history(basemodel, *, stepfiles, override=None, dfcr=None, ylim=None):
     previous_cost = 1e99
     fname = ('' if not override else override) + f'histcrit.pdf'
@@ -277,4 +307,212 @@ def plot_all_reducing_functions(*, models, aliases, yvar = 'rho'):
     else:
         axv.set(xlabel=r'$z_1$ / mole frac.', ylabel=r'$v_{\rm red}$ / cm$^3$/mol')
     plt.savefig('reducing_functions.pdf')
+    plt.show()
+
+def get_rhovecLV_guess(basemodel, T, ipure):
+    # This assumes a multifluid model
+    anc = basemodel.build_ancillaries()
+    rhoLanc, rhoVanc = anc.rhoL(T), anc.rhoV(T)
+    # VLE polish
+    rhoL, rhoV = basemodel.pure_VLE_T(T, rhoLanc, rhoVanc, 10)
+
+    rhovecL = np.array([0.0, 0]); rhovecL[ipure] = rhoL
+    rhovecV = np.array([0.0, 0]); rhovecV[ipure] = rhoV
+    
+    return rhovecL, rhovecV
+
+class ModelAssessmentPlotter:
+
+    stepfiles: List[Dict]
+    last_stepfile: Dict 
+
+    def __init__(self, result_path, result_filter):
+        """
+        Args:
+            result_path: 
+            selector: 
+        """
+        self.results = ResultsParser(result_path)
+        self.dfresults = result_filter(self.results.dfresults)
+        if len(self.dfresults) != 1:
+            raise ValueError("Result DataFrame must be one element in length after filtering; current length is "+str(len(self.dfresults)))
+        # Get the unique identifier for the run
+        self.uid = self.dfresults.uid.iloc[0]
+        self.pair = self.dfresults['pair'].iloc[0]
+        # Extract the stepfiles and store in the class
+        self.stepfiles = self.results.get_stepfiles(self.uid)
+        self.last_stepfile = self.stepfiles[-1]
+        self.model, self.basemodel, self.basemodels = build_mutant(self.pair, path=teqp.get_datapath(), spec=self.last_stepfile['model'])
+    
+    def plot_cost_history(self, *, ax, stepfiles):
+        iter_history = []; cost_history = []
+        for N, stepfile in enumerate(stepfiles):
+            iter_history.append(N+1)
+            cost_history.append(stepfile['cost'])
+        ax.plot(iter_history, cost_history)
+        ax.set_xscale('log')
+        ax.set_xlabel('Iteration #')
+        ax.set_ylabel('Cost function')
+
+    def plot_B12(self, *, ax, z1_comps, Trange: List[float], labels: List[str], model=None):
+        """ 
+        Args:
+            ax: the axis onto which to plot
+            z1_comps: the list of compositions of the first component for which B12 curves are desired
+            Trange: the two-element list of min and max temperature
+            labels (optional): the label for each trace
+            model (optional): the teqp.AbstractModel instance, or the default if not provided
+        """
+        # Add method for adding labels
+        if labels is None:
+            labels = ['' for i in range(len(z1_comps))]
+
+        if model is None:
+            model = self.model
+
+        for comp, label in zip(z1_comps, labels):
+            z = np.array([comp, 1-comp])
+            Tvec = np.linspace(*Trange)
+            assert(len(Trange)==2)
+            B12 = np.array([model.get_B12vir(T_, z) for T_ in Tvec])
+            ax.plot(Tvec, B12, label=label)
+        ax.set_xlabel(r'$T$ / K')
+        ax.set_ylabel(r'$B_{12}$ / cm$^3$/mol')
+        ax.legend(loc='best')
+
+    def plot_binary_VLE_isotherms(self, *, ax, Tvec: List[float], cmap, ipure, model=None, basemodel=None, options: Dict = None, plot_kwargs: Dict = {}):
+        """ 
+        Args:
+            ax: the axis onto which to plot
+            Tvec: the iterable containing the temperatures for which isotherms are desired
+            cmap: the callable with method to_rgba(T) that will be used to determine the color of the trace
+            ipure: the index, in {0,1}, that is the fluid from which the trace starts
+            model (optional): the teqp.AbstractModel instance, or the default if not provided
+            basemodel (optional): the teqp.AbstractModel instance for the basemodel, or the default if not provided
+            plot_kwargs (optional): a dictionary of common arguments to be applied to liquid and vapor traces
+        """
+
+        if model is None:
+            model = self.model
+        if basemodel is None:
+            basemodel = self.basemodel
+        
+        for T in Tvec:
+            opt = teqp.TVLEOptions(); opt.polish=True; opt.integration_order=5; opt.calc_criticality = True
+            opt.terminate_unstable = True; opt.max_steps=200; 
+            # User can override tracing options if desired
+            if options:
+                for k, v in options.items():
+                    setattr(opt, k, v)
+            
+            # Pure fluid endpoint
+            rhovecL, rhovecV = get_rhovecLV_guess(basemodel, T, ipure)
+
+            # Now trace and plot
+            o = model.trace_VLE_isotherm_binary(T, rhovecL, rhovecV, opt)
+            df = pandas.DataFrame(o)
+            plt.plot(df['xL_0 / mole frac.'], df['pL / Pa']/1e6, c=cmap.to_rgba(T), **plot_kwargs)
+            plt.plot(df['xV_0 / mole frac.'], df['pL / Pa']/1e6, c=cmap.to_rgba(T), dashes=[2,2], **plot_kwargs)
+
+        ax.set_xlabel(r'$x_1$, $y_1$ / mole frac.')
+        ax.set_ylabel('$p$ / MPa')
+        ax.set_yscale('log')
+
+    def plot_binary_critical_locus(self, *, ax, kind, ipure, model=None, basemodel=None, options: Dict = None, plot_kwargs: Dict = {}):
+        """ 
+        Args:
+            ax: the axis onto which to plot
+            kind: the variables to be plotted, one of {'XP','TP'}
+            ipure: the index of the fluid, in {0,1}, from which the trace starts
+            model (optional): the teqp.AbstractModel instance, or the default if not provided
+            basemodel (optional): the teqp.AbstractModel instance for the basemodel, or the default if not provided
+            options (optional): key-value pairs to overwrite sensible defaults in teqp.TCABOptions
+            plot_kwargs (optional): a dictionary of common arguments to be applied to the trace
+        """
+
+        if model is None:
+            model = self.model
+        if basemodel is None:
+            basemodel = self.basemodel
+
+        Tcvec = basemodel.get_Tcvec()
+        vcvec = basemodel.get_vcvec()
+        opt = {"alternative_pure_index": ipure, "alternative_length": 2}
+        [T0, rho0] = model.solve_pure_critical(Tcvec[ipure], 1.0/vcvec[ipure], opt)
+        rhovec0 = np.array([0.0, 0])
+        rhovec0[ipure] = rho0
+
+        opt = teqp.TCABOptions()
+        opt.polish = True
+        opt.integration_order = 5
+        opt.init_dt = 100
+        opt.max_dt = 1000
+        if options:
+            for k, v in options.items():
+                setattr(opt, k, v)
+
+        cr = pandas.DataFrame(model.trace_critical_arclength_binary(T0, rhovec0, '', opt))
+        # print(len(cr))
+        cr['z_0 / mole frac.'] = cr['rho0 / mol/m^3']/(cr['rho0 / mol/m^3']+cr['rho1 / mol/m^3'])
+        if kind == 'XP':
+            ax.plot(cr['z_0 / mole frac.'], cr['p / Pa']/1e6, **plot_kwargs)
+            ax.set_xlabel(r'$x_1$, $y_1$ / mole frac.')
+            ax.set_ylabel('$p$ / MPa')
+            ax.set_yscale('log')
+        elif kind == 'TP':
+            ax.plot(cr['T / K'], cr['p / Pa']/1e6, **plot_kwargs)
+            ax.set_xlabel(r'$T$ / K')
+            ax.set_ylabel('$p$ / MPa')
+            ax.set_yscale('log')
+        else:
+            raise ValueError()
+
+if __name__ == '__main__':
+
+    mapp = ModelAssessmentPlotter(
+        'runc709530e-e431-11ed-b7b3-8e94f88bf11a.tar.xz', 
+        result_filter=PairMinFilter(['R32',"R1234YF"])
+    )
+    
+    # First thing to make sure the run is converged,
+    # at least approximately, so we plot the cost function 
+    # history
+    fig, ax = plt.subplots()
+    comps = [0.3, 0.7]
+    mapp.plot_cost_history(ax=ax, stepfiles=mapp.stepfiles)
+    plt.close()
+
+    # Next we plot the B12 for two compositions, to make sure
+    # that they are close to the same
+    fig, ax = plt.subplots()
+    comps = [0.3, 0.7]
+    mapp.plot_B12(ax=ax, z1_comps=comps, Trange=(240, 300), 
+                  labels=[rf'$z_{{\rm R32}}$: {z} / mole frac.' for z in comps])
+    # <USER>
+    # And you could add experimental data points here...
+    # </USER>
+    plt.tight_layout(pad=0.2)
+    plt.close()
+
+    # A pretty colored p-x diagram
+    fig, ax = plt.subplots()
+    comps = [0.3, 0.7]
+    # First plot the points from the fitting data file
+    # Note: you can pass keyword arguments to the 
+    # read_csv function here if needed
+    df = mapp.results.get_df_VLE(sep=',') 
+    sc = ax.scatter(x=df['x_1 / mole frac.'], y=df['p / kPa']/1e3, c=df['T / K'])
+    # Then plot the corresponding isotherms with matching color scheme
+    ipure = 0
+    mapp.plot_binary_VLE_isotherms(
+        ax=ax, Tvec=set(df['T / K']), cmap=sc, 
+        ipure=ipure, basemodel=mapp.basemodels[ipure]
+    )
+    # And the critical locus too for good measure
+    mapp.plot_binary_critical_locus(
+        ax=ax, ipure=ipure, kind='XP', 
+        options={'rel_err': 1e-10}, 
+        plot_kwargs={'color': 'k', 'lw': 2}
+    )
+    plt.tight_layout(pad=0.2)
     plt.show()

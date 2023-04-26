@@ -6,6 +6,7 @@
 
 import os, subprocess
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
+on_rtd = True
 
 # -- Path setup --------------------------------------------------------------
 
