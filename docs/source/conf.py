@@ -33,7 +33,7 @@ release = '?'
 if on_rtd:
     # subprocess.check_output(f'jupyter nbconvert --version', shell=True)
     for path, dirs, files in os.walk('.'):
-        if 'html' in path or 'latex' in path: continue
+        if 'html' in path or 'latex' in path or '_build' in path: continue
         for file in files:
             if file.endswith('.ipynb') and '.ipynb_checkpoints' not in path and '.nbconvert.' not in path:
                 import glob; print(glob.glob(f'{path}/*.*'))
