@@ -99,13 +99,19 @@ class ResultsParser:
             paths = sort_paths(paths)
             stepfiles = [json.load(open(f)) for f in paths]
         return stepfiles
-    
-    def get_df_VLE(self, **kwargs):
+        
+    def get_fitdata_df(self, key, **kwargs):
+        """ Return a selected DataFrame from the ``fitdataroot`` folder in the archive 
+        Args:
+            key: The search string that should be in the filename to be pulled from the ``fitdataroot`` folder in the archive
+
+        Good options are: 'VLE','SOS','PVT', etc.
+        """
         if self.path.endswith('.tar.xz'):
             with tarfile.open(self.path, mode='r:xz') as tar:
                 for info in tar.getmembers():
                     filename = info.name
-                    if 'fitdataroot' in filename and 'VLE' in filename:
+                    if 'fitdataroot' in filename and key in filename:
                         return pandas.read_csv(tar.extractfile(info), **kwargs)
         else:
             raise ValueError("zipfiles are not supported (don't compress as well as LZMA)'")
