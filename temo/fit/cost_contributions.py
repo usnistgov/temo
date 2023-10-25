@@ -120,15 +120,19 @@ def calc_errVLE(model, df, *, step=1):
 
         try:
             code, rhovecLnew, rhovecVnew = model.mix_VLE_Tx(T, rhovecL, rhovecV, z, 1e-8, 1e-8, 1e-8, 1e-8, 20)
+            if sum(~np.isfinite(rhovecLnew)) > 0:
+                return 1e20
+            if sum(~np.isfinite(rhovecVnew)) > 0:
+                return 1e20
             # Check for trivial solutions and penalize them
             if np.max(np.abs(rhovecLnew - rhovecVnew)) < 1e-6*np.sum(rhovecLnew):
                 return 1e20
             p = rhovecLnew.sum()*model.get_R(z)*T + model.get_pr(T, rhovecLnew)
-            y = rhovecVnew/rhovecVnew.sum()
-            pV = rhovecVnew.sum()*model.get_R(y)*T + model.get_pr(T, rhovecVnew)
+            # y = rhovecVnew/rhovecVnew.sum()
+            # pV = rhovecVnew.sum()*model.get_R(y)*T + model.get_pr(T, rhovecVnew)
             p_err = (1-p/p_meas)*100
-            if abs(pV/p-1) > 0.01:
-                print('bad solver!', code, pV/p-1)
+            # if abs(pV/p-1) > 0.01:
+            #     print('bad solver!', code, pV/p-1)
             if not np.isfinite(p_err):
                 return 1e20
             else:
