@@ -105,7 +105,9 @@ class ResultsParser:
         Args:
             key: The search string that should be in the filename to be pulled from the ``fitdataroot`` folder in the archive
 
-        Good options are: 'VLE','SOS','PVT', etc.
+        Usage: provide 'SOS' for key to obtain the DataFrame for SOS.csv file, for instance
+
+        Good options for key are: 'VLE','SOS','PVT', etc.
         """
         if self.path.endswith('.tar.xz'):
             with tarfile.open(self.path, mode='r:xz') as tar:
@@ -345,8 +347,8 @@ class ModelAssessmentPlotter:
     def __init__(self, result_path, result_filter):
         """
         Args:
-            result_path: 
-            selector: 
+            result_path: The path to the results archive, strongly rtecommended to work from a .tar.xz archive, also .zip or path to folder (unzipped) are allowed
+            result_filter: A function that filters from the results down to the result that will be used for further post-processing
         """
         self.results = ResultsParser(result_path)
         self.dfresults = result_filter(self.results.dfresults)
@@ -360,8 +362,17 @@ class ModelAssessmentPlotter:
         self.last_stepfile = self.stepfiles[-1]
         self.model, self.basemodel, self.basemodels = build_mutant(self.pair, path=teqp.get_datapath(), spec=self.last_stepfile['model'])
     
-    def plot_cost_history(self, *, ax, stepfiles):
+    def plot_cost_history(self, *, ax, stepfiles=None):
+        """
+        Plot the history of the cost function over the course of the optimization
+        
+        Args:
+            ax: The axis to plot onto
+            stepfiles (optional): The stepfiles, provided as a list of JSON instances
+        """
         iter_history = []; cost_history = []
+        if stepfiles is None:
+            stepfiles = self.stepfiles
         for N, stepfile in enumerate(stepfiles):
             iter_history.append(N+1)
             cost_history.append(stepfile['cost'])
@@ -372,6 +383,8 @@ class ModelAssessmentPlotter:
 
     def plot_B12(self, *, ax, z1_comps, Trange: List[float], labels: List[str], model=None):
         """ 
+        Plot the second cross virial coefficient B_12
+    
         Args:
             ax: the axis onto which to plot
             z1_comps: the list of compositions of the first component for which B12 curves are desired
