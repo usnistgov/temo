@@ -229,6 +229,13 @@ def calc_errtracecrit(model, df, *, T0, rhovec0, errscheme, step=1):
             e1 = float(scipy.spatial.distance.cdist(XA, XB).min(axis=0))
             toc3 = timeit.default_timer()
             return e1
+        elif errscheme in ['T','T*']:
+            rhotot = crit['rho0 / mol/m^3']+crit['rho1 / mol/m^3']
+            crit['z0 / mole frac.'] = crit['rho0 / mol/m^3']/rhotot
+            Tinterp = scipy.interpolate.interp1d(crit['z0 / mole frac.'], crit['T / K'], bounds_error=False, fill_value=1e20)(df['z_1 / mole frac.'])
+            if errscheme == 'T*':
+                print(Tinterp)
+            return np.mean(np.abs(Tinterp-df['T / K']))
         elif errscheme == 'TdevP':
             # Interpolate for given value of T to find p along critical curve, compare
             # with the measured critical pressure
