@@ -140,6 +140,12 @@ def load_VLE(dataroot, identifier, identifiers, apply_skip=True, output_csv=None
                 raise KeyError("Required column not found in DEW data: " + str(missing_columns))
         else:
             raise KeyError(f'Provided kind of "{kind}" is not in the set of {{"PTXY","BUB","DEW"}}')
+        
+    # Force-skip pure fluid data, cannot be fitted for mixtures
+    df = df[~(df['x_1 / mole frac.'] == 0.0)]
+    df = df[~(df['x_1 / mole frac.'] == 1.0)]
+    df = df[~(df['y_1 / mole frac.'] == 0.0)]
+    df = df[~(df['y_1 / mole frac.'] == 1.0)]
 
     def get_p_Pa(row):
         if 'p / Pa' in row and not pandas.isnull(row['p / Pa']):
