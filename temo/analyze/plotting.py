@@ -119,13 +119,23 @@ class ResultsParser:
             raise ValueError("zipfiles are not supported (don't compress as well as LZMA)'")
     
 class PairMinFilter:
-    def __init__(self, pair):
+    def __init__(self, pair, bgindices=None):
         self.pair = tuple(pair)
+        self.bgindices = bgindices
 
     def __call__(self, df):
         # Keep only rows that match the pair
         matches_pair = df.apply(lambda row: tuple(row['pair']) == self.pair, axis=1)
         df = df[matches_pair].copy()
+        if len(df) == 0:
+            raise KeyError(self.pair)
+        
+        if self.bgindices:
+            # keep only rows with matching bgindices
+            def matches_btgt(row):
+                return row['mutant_kwargs']['bgindices'] == self.bgindices
+            mask = df.apply(matches_btgt, axis=1)
+            df = df[mask].copy()
         
         # And return the lowest cost result
         return pandas.DataFrame([df.sort_values(by='cost').iloc[0]])
