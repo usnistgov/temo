@@ -128,7 +128,7 @@ def chunked_iterable(iterable, size):
             break
         yield chunk
 
-def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=None):
+def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=None, Nbg=4, bgindices=None):
     """
     Build a teqp-based Gaussian+exponential mutant from the model parameters
     
@@ -139,6 +139,8 @@ def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=
         Ngaussian (int): number of Gaussian terms
         d (list, optional): set of exponents on delta, optional
         l (list, optional): set of exponents on delta in exponential, optional
+        Nbg (int, optinal): the number of beta and gamma parameters being fit, usually 4 to indicate that all four are being fit
+        bgindices (sequence, optional): the indices {0: betaT, 1: gammaT, 2: betaV, 3: gammaV} to be fit
 
     Term is of the form:
 
@@ -159,7 +161,7 @@ def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=
     where the params populate the n and t. Values of d and l are user-specified, or follow
     the automatic logic in this function
     """
-    depparams = np.array(params[4::])
+    depparams = np.array(params[Nbg::])
     Ndep = Npoly + Ngaussian
     assert(Ndep*2 + Ngaussian*4 == len(depparams))
 
@@ -178,6 +180,14 @@ def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=
         Literator = itertools.cycle([1,1,1,1,2,2,2,3,3,3])
         l = [next(Literator) for _ in range(Ndep)]
 
+    if Nbg == 4:
+        betaT, gammaT, betaV, gammaV = params[0:Nbg]
+    else:
+        assert(len(bgindices) == Nbg)
+        bgparams = np.array([1.0]*4)
+        bgparams[bgindices] = params[0:Nbg]
+        betaT, gammaT, betaV, gammaV = bgparams
+
     # Build a dictionary in the format that teqp needs. The conversion to
     # string passed to the C++ interface and upacking into the JSON
     # structure is handled implicitly in the pybind11 interface.
@@ -189,10 +199,10 @@ def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=
             "1": {
                 "BIP":{
                     "type": "GERG",
-                    "betaT": params[0],
-                    "gammaT": params[1],
-                    "betaV": params[2],
-                    "gammaV": params[3],
+                    "betaT": betaT,
+                    "gammaT": gammaT,
+                    "betaV": betaV,
+                    "gammaV": gammaV,
                     "Fij": 1.0
                 },
                 "departure":{
