@@ -114,12 +114,25 @@ def calc_errVLE(model, df, *, step=1):
         T = row['T / K']
         rhovecL = np.array([row['rhoL_1 / mol/m^3'], row['rhoL_2 / mol/m^3']])
         rhovecV = np.array([row['rhoV_1 / mol/m^3'], row['rhoV_2 / mol/m^3']])
-        x_0 = row['x_1 / mole frac.']
-        z = np.array([x_0, 1-x_0])
+        if np.isfinite(row['x_1 / mole frac.']):
+            x_0 = row['x_1 / mole frac.']
+            z = np.array([x_0, 1-x_0])
+            swap = False 
+        elif np.isfinite(row['y_1 / mole frac.']):
+            y_0 = row['y_1 / mole frac.']
+            z = np.array([y_0, 1-y_0])
+            swap = True
+        else:
+            raise ValueError("Neither x_1 nor y_2 is provided")
+        
         p_meas = row['p / Pa']
 
         try:
-            code, rhovecLnew, rhovecVnew = model.mix_VLE_Tx(T, rhovecL, rhovecV, z, 1e-8, 1e-8, 1e-8, 1e-8, 20)
+            if not swap:
+                code, rhovecLnew, rhovecVnew = model.mix_VLE_Tx(T, rhovecL, rhovecV, z, 1e-8, 1e-8, 1e-8, 1e-8, 20)
+            else:
+                code, rhovecVnew, rhovecLnew = model.mix_VLE_Tx(T, rhovecV, rhovecL, z, 1e-8, 1e-8, 1e-8, 1e-8, 20)
+
             if sum(~np.isfinite(rhovecLnew)) > 0:
                 return 1e20
             if sum(~np.isfinite(rhovecVnew)) > 0:
