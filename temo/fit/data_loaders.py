@@ -122,30 +122,35 @@ def load_VLE(dataroot, identifier, identifiers, apply_skip=True, output_csv=None
     if missing_columns:
         raise KeyError("Required column not found in VLE data: " + str(missing_columns))
     
+    def force_skip_pure(df, key):
+        df = df[~(df[key] == 0.0)]
+        df = df[~(df[key] == 1.0)]
+        return df
+        
     for kind, gp in df.groupby('kind'):
         if kind == 'PTXY':
             required_columns = ['x_1 / mole frac.', 'y_1 / mole frac.']
             missing_columns = [col for col in required_columns if col not in gp]
             if missing_columns:
                 raise KeyError("Required column not found in VLE data: " + str(missing_columns))
+            for col in required_columns:
+                df = force_skip_pure(df, col)
         elif kind == 'BUB':
             required_columns = ['x_1 / mole frac.']
             missing_columns = [col for col in required_columns if col not in gp]
             if missing_columns:
                 raise KeyError("Required column not found in BUB data: " + str(missing_columns))
+            for col in required_columns:
+                df = force_skip_pure(df, col)
         elif kind == 'DEW':
             required_columns = ['y_1 / mole frac.']
             missing_columns = [col for col in required_columns if col not in gp]
             if missing_columns:
                 raise KeyError("Required column not found in DEW data: " + str(missing_columns))
+            for col in required_columns:
+                df = force_skip_pure(df, col)
         else:
             raise KeyError(f'Provided kind of "{kind}" is not in the set of {{"PTXY","BUB","DEW"}}')
-        
-    # Force-skip pure fluid data, cannot be fitted for mixtures
-    df = df[~(df['x_1 / mole frac.'] == 0.0)]
-    df = df[~(df['x_1 / mole frac.'] == 1.0)]
-    df = df[~(df['y_1 / mole frac.'] == 0.0)]
-    df = df[~(df['y_1 / mole frac.'] == 1.0)]
 
     def get_p_Pa(row):
         if 'p / Pa' in row and not pandas.isnull(row['p / Pa']):
