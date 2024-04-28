@@ -116,6 +116,8 @@ def load_PVT_P(dataroot, *, identifier, identifiers, apply_skip=True, output_csv
 def load_VLE(dataroot, identifier, identifiers, apply_skip=True, output_csv=None, verbosity=1, molar_masses=None, sep=','):
     """ Loader for VLE data """
     df = read_and_subset(dataroot+'/VLE.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip, sep=sep)
+    if df.empty:
+        raise ValueError(f"No rows remained after loading the VLE and applying filter:: {{identifier: {identifier}, identifiers: {identifiers}}}")
 
     required_columns = ['T / K', 'kind']
     missing_columns = [col for col in required_columns if col not in df]
