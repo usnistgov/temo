@@ -95,6 +95,8 @@ def _density_processing(df, molar_masses=None):
 def load_PVT(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=None, molar_masses, verbosity=1, sep=','):
     """ Loader for p-v-T data """
     df = read_and_subset(dataroot+'/PVT.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip, sep=sep)
+    if df.empty:
+        raise ValueError(f"No rows remained after loading the PVT and applying filter:: {{identifier: {identifier}, identifiers: {identifiers}}}")
     df = _density_processing(df, molar_masses=molar_masses)
 
     if output_csv is not None:
@@ -108,6 +110,8 @@ def load_PVT(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=N
 def load_PVT_P(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=None, molar_masses, verbosity=1, sep=','):
     """ Loader for p-v-T data with pressure deviations """
     df = read_and_subset(dataroot+'/PVT_P.csv', identifier=identifier, identifiers=identifiers, apply_skip=False, sep=sep)
+    if df.empty:
+        raise ValueError(f"No rows remained after loading the PVT_P and applying filter:: {{identifier: {identifier}, identifiers: {identifiers}}}")
     df = _density_processing(df, molar_masses=molar_masses)
 
     if output_csv is not None:
