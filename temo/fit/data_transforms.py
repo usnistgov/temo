@@ -2,6 +2,7 @@ from multiprocessing.sharedctypes import Value
 import os
 import pandas
 import numpy as np 
+import teqp 
 
 def add_homogeneous_density_REFPROP(df, *, RP):
     def add_rho(row):
@@ -26,6 +27,26 @@ def add_Ao20_REFPROP(df, *, RP):
         if r.ierr > 0:
             raise ValueError(r.herr)
         return r.Output[0]
+    df['Ao20'] = df.apply(add_Ao20, axis=1)
+    return df
+
+def add_Ao20_teqp(df, *, paths:list[str], z1_key = 'z_1 / mole frac.'):
+    """Add Ao20 for the ideal gas based on the formulations in the JSON files in CoolProp format
+
+    Args:
+        df (pandas.DataFrame): The starting DataFrame
+        paths (list[str]): The list of paths to the files on the computer in CoolProp JSON format
+        z1_key (str, optional): The key in the DataFrame corresponding to the mole fraction of the first component. Defaults to 'z_1 / mole frac.'.
+
+    Returns:
+        pandas.DataFrame: The updated DataFrame
+    """
+    aig = teqp.IdealHelmholtz([teqp.convert_CoolProp_idealgas(path, 0) for path in paths])
+    def add_Ao20(row):
+        T = row['T / K']
+        z_1 = row[z1_key]
+        z = np.array([z_1, 1-z_1])
+        return aig.get_Ar20(T, 10000, z) # the density doesn't get used
     df['Ao20'] = df.apply(add_Ao20, axis=1)
     return df
 
