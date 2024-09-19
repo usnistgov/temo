@@ -3,8 +3,18 @@ import os
 import pandas
 import numpy as np 
 import teqp 
+from ctREFPROP.ctREFPROP import REFPROPFunctionLibrary
 
-def add_homogeneous_density_REFPROP(df, *, RP):
+def add_homogeneous_density_REFPROP(df:pandas.DataFrame, *, RP:REFPROPFunctionLibrary) -> pandas.DataFrame:
+    """Add homogeneous densities for state points at given temperature and pressure (and composition)
+
+    Args:
+        df (pandas.DataFrame): The starting DataFrame
+        RP (REFPROPFunctionLibrary): REFPROP with the model instantiated
+
+    Returns:
+        pandas.DataFrame: The updated DataFrame with the column 'rho(EOS) / mol/m^3' added
+    """
     def add_rho(row):
         T = row['T / K']; p = row['p / Pa']
         z_1 = row['z_1 / mole frac.']
@@ -18,10 +28,21 @@ def add_homogeneous_density_REFPROP(df, *, RP):
     df['rho(EOS) / mol/m^3'] = df.apply(add_rho, axis=1)
     return df
 
-def add_Ao20_REFPROP(df, *, RP):
+def add_Ao20_REFPROP(df, *, RP:REFPROPFunctionLibrary, z1_key = 'z_1 / mole frac.' ) -> pandas.DataFrame:
+    """Add Ao20 for the ideal gas based on the formulations in REFPROP
+
+    Args:
+        df (pandas.DataFrame): The starting DataFrame
+        RP (REFPROPFunctionLibrary): REFPROP with the model instantiated
+        z1_key (str, optional): The key in the DataFrame corresponding to the mole fraction of the first component. Defaults to 'z_1 / mole frac.'.
+
+    Returns:
+        pandas.DataFrame: The updated DataFrame with the column 'Ao20' added
+    """
+    
     def add_Ao20(row):
         T = row['T / K']
-        z_1 = row['z_1 / mole frac.']
+        z_1 = row[z1_key]
         z = np.array([z_1, 1-z_1])
         r = RP.REFPROPdll('', 'TD','PHIG20',RP.MOLAR_BASE_SI, 0,0,T,0,z)
         if r.ierr > 0:
@@ -30,7 +51,7 @@ def add_Ao20_REFPROP(df, *, RP):
     df['Ao20'] = df.apply(add_Ao20, axis=1)
     return df
 
-def add_Ao20_teqp(df, *, paths:list[str], z1_key = 'z_1 / mole frac.'):
+def add_Ao20_teqp(df: pandas.DataFrame, *, paths:list[str], z1_key = 'z_1 / mole frac.') -> pandas.DataFrame:
     """Add Ao20 for the ideal gas based on the formulations in the JSON files in CoolProp format
 
     Args:
@@ -39,7 +60,7 @@ def add_Ao20_teqp(df, *, paths:list[str], z1_key = 'z_1 / mole frac.'):
         z1_key (str, optional): The key in the DataFrame corresponding to the mole fraction of the first component. Defaults to 'z_1 / mole frac.'.
 
     Returns:
-        pandas.DataFrame: The updated DataFrame
+        pandas.DataFrame: The updated DataFrame with the column 'Ao20' added
     """
     aig = teqp.IdealHelmholtz([teqp.convert_CoolProp_idealgas(path, 0) for path in paths])
     def add_Ao20(row):
@@ -67,7 +88,20 @@ def add_pure_crit_REFPROP(df, *, RP, ifluid):
     df[['rhoL_pure_1 / mol/m^3','rhoL_pure_2 / mol/m^3','rhoV_pure_1 / mol/m^3','rhoV_pure_2 / mol/m^3']] = df.apply(add, axis=1, result_type='expand')
     return df
 
-def add_coexisting_concentrations_REFPROP(df, *, RP, Q=0):
+def add_coexisting_concentrations_REFPROP(df:pandas.DataFrame, *, RP:REFPROPFunctionLibrary, Q:float=0) -> pandas.DataFrame:
+    """Add co-existing VLE densities for each row with the model from REFPROP
+
+    Args:
+        df (pandas.DataFrame): The starting DataFrame 
+        RP (REFPROPFunctionLibrary): The REFPROP instance (with the Python interface) to be used for the phase equilibrium calculations 
+        Q (float, optional): Molar vapor quality to be used for the phase equilibrium calculation. Defaults to 0.
+
+    Raises:
+        ValueError: If the vapor quality is invalid
+
+    Returns:
+        pandas.DataFrame: The updated DataFrame
+    """
     # Store guess values for densities given the existing model in REFPROP
     def add_rhos(row):
         T = row['T / K']
