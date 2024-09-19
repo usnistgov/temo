@@ -19,9 +19,13 @@ def read_and_subset(path, identifier, identifiers, apply_skip, sep=','):
         df = df[pandas.isnull(df.skip)]
     return df
 
+
+
 def load_SOS(dataroot, *, apply_skip=True, identifier, identifiers, output_csv=None, molar_masses, verbosity=1, sep=','):
     """ Loader for speed of sound data """
     df = read_and_subset(dataroot+'/SOS.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip, sep=sep)
+    if df.empty:
+        raise ValueError(f"No rows remained after loading the SOS and applying filter:: {{identifier: {identifier}, identifiers: {identifiers}}}")
     z_1 = df['z_1 / mole frac.']
     df['M / kg/mol'] = z_1*molar_masses[0] + (1-z_1)*molar_masses[1]
     required_columns = ['T / K', 'Ao20', 'bibkey']
