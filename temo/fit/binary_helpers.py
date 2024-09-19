@@ -1,5 +1,7 @@
 import pandas 
 import scipy.interpolate
+import teqp 
+import numpy as np
 
 class BinaryVLEIsothermFitter:
     
