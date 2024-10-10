@@ -118,6 +118,9 @@ class BinaryVLEIsothermInterpolator:
         RHOL = np.array(trace['rhoL / mol/m^3'].tolist())
         RHOV = np.array(trace['rhoV / mol/m^3'].tolist())
         
+        self.t_interpolator_rhoL = scipy.interpolate.interp1d(RHOL.sum(axis=1), trace['t'], fill_value=np.nan, bounds_error=False)
+        self.t_interpolator_rhoV = scipy.interpolate.interp1d(RHOV.sum(axis=1), trace['t'], fill_value=np.nan, bounds_error=False)
+        
         self.t_interpolator_x1 = scipy.interpolate.interp1d(trace['xL_0 / mole frac.'], trace['t'], fill_value=np.nan, bounds_error=False)
         self.t_interpolator_y1 = scipy.interpolate.interp1d(trace['xV_0 / mole frac.'], trace['t'], fill_value=np.nan, bounds_error=False)
         self.t_interpolator_p = scipy.interpolate.interp1d(trace['pL / Pa'], trace['t'], fill_value=np.nan, bounds_error=False)
