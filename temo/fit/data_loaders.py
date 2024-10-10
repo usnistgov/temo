@@ -57,6 +57,8 @@ def _density_processing(df, molar_masses=None):
     allowed_density_cols = ['rho / kg/m^3', 'rho / mol/m^3']
 
     for key, gp in df.groupby('bibkey'):
+        phases = gp.phases.iloc[0]
+        property = gp.property.iloc[0]
 
         # Pressure in Pa, kPa, MPa, or GPa
         provided_press_cols = [col for col in allowed_press_cols if (col in gp and all(~pandas.isnull(gp[col])))]
@@ -68,7 +70,7 @@ def _density_processing(df, molar_masses=None):
         provided_density_cols = [col for col in allowed_density_cols if (col in gp and all(~pandas.isnull(gp[col])))]
         if len(provided_density_cols) != 1:
             raise ValueError(f"One and only one of the density options [{allowed_density_cols}] must be"
-            f" provided for bibkey of {key}. You provided: {provided_density_cols}")
+            f" provided for bibkey of {key} w/ phases of {phases} and property of {property}. You provided: {provided_density_cols}")
 
     def get_molar_density(row):
         if 'rho / mol/m^3' in row and not pandas.isnull(row['rho / mol/m^3']):
