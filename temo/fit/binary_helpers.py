@@ -5,7 +5,7 @@ import numpy as np
 
 class BinaryVLEIsothermFitter:
     
-    def __init__(self, *, ipure: int, T_K: float, anc, df_isoT:pandas.DataFrame, identifiers:list[str], component_json:list[dict]):
+    def __init__(self, *, ipure: int, T_K: float, anc, df_isoT:pandas.DataFrame, identifiers:list[str], component_json:list[dict], p_required:bool=True, tidy:bool=False):
         """ A helper class for fitting data points along vapor-liquid equilibrium isotherms for binary mixtures
 
         Args:
@@ -15,12 +15,17 @@ class BinaryVLEIsothermFitter:
             df_isoT (pandas.DataFrame): Contents used for the isotherm fitting
             identifiers (list[str]): List of identifiers to be used for each fluid, usually the FLD from REFPROP, or could be some other string thing
             component_json (list[json]): A list of JSON-compatible python data structures to be passed to make_model
+            p_required(bool): Should the pressure be required to be found in a row. Not necessary for saturated states where T, Q fixes the state
+            tidy(bool): If true, do the cleanup of the DataFrame to remove invalid rows
         """
         self.ipure = ipure
         self.T_K = T_K
         self.anc = anc 
         self.identifiers = identifiers
-        self.df_isoT = self._tidy_dataframe(df_isoT)
+        if tidy:
+            self.df_isoT = self._tidy_dataframe(df_isoT, p_required=p_required)
+        else:
+            self.df_isoT = df_isoT
         if len(self.df_isoT) == 0:
             raise ValueError("No valid fitting points can be found")
         self.component_json = component_json
@@ -33,14 +38,18 @@ class BinaryVLEIsothermFitter:
         self.rhovecL0 = np.array([0.0, 0.0]); self.rhovecL0[ipure] = rhoL0
         self.rhovecV0 = np.array([0.0, 0.0]); self.rhovecV0[ipure] = rhoV0
         
-    def _tidy_dataframe(self, gp):
+    def _tidy_dataframe(self, gp, *, p_required):
         """ 
         A convenience function to strip out pure fluid data points as well
         as rows where the pressure is not specifified
         """
         gp = gp.copy()
         gp.dropna(axis=0, subset=['x_1 / mole frac.'], inplace=True)
-        gp = gp[~pandas.isnull(gp['p / kPa'])]
+        if p_required:
+            if 'p / kPa' in gp:
+                gp = gp[~pandas.isnull(gp['p / kPa'])]
+            if 'p / Pa' in gp:
+                gp = gp[~pandas.isnull(gp['p / Pa'])]
         gp = gp[gp['x_1 / mole frac.'] != 0]
         gp = gp[gp['x_1 / mole frac.'] != 1]
         gp = gp[gp['y_1 / mole frac.'] != 0]
