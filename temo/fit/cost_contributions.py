@@ -9,6 +9,8 @@ def calc_errrho(*, model, df, step=1, iterate=False):
     """ 
     Deviation function from PVT data
 
+    Returns percentage signed relative deviation in density
+
     It is not actually the relative difference in density, because that
     would require iterative calculations. Instead, the Maclaurin series
     expansion around the experimental density is used to obtain a
