@@ -94,12 +94,13 @@ def _density_processing(df, molar_masses=None):
     df['p / Pa'] = df.apply(get_p_Pa, axis=1)
     return df.copy()
 
-def load_PVT(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=None, molar_masses, verbosity=1, sep=','):
+def load_PVT(dataroot, *, identifier, identifiers, apply_skip=True, output_csv=None, molar_masses, verbosity=1, sep=',', empty_permitted=True):
     """ Loader for p-v-T data """
     df = read_and_subset(dataroot+'/PVT.csv', identifier=identifier, identifiers=identifiers, apply_skip=apply_skip, sep=sep)
-    if df.empty:
+    if df.empty and not empty_permitted:
         raise ValueError(f"No rows remained after loading the PVT and applying filter:: {{identifier: {identifier}, identifiers: {identifiers}}}")
-    df = _density_processing(df, molar_masses=molar_masses)
+    if not df.empty:
+        df = _density_processing(df, molar_masses=molar_masses)
 
     if output_csv is not None:
         df.to_csv(output_csv, index=False)
