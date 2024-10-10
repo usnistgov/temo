@@ -140,10 +140,15 @@ def calc_errVLE(model, df, *, step=1):
             # Check for trivial solutions and penalize them
             if np.max(np.abs(rhovecLnew - rhovecVnew)) < 1e-6*np.sum(rhovecLnew):
                 return 1e20
-            p = rhovecLnew.sum()*model.get_R(z)*T + model.get_pr(T, rhovecLnew)
+            p = rhovecLnew.sum()*model.get_R(z)*T*(1+model.get_Ar01(T, rhovecLnew.sum(), z))
+            if not np.isfinite(p):
+                # print('not finite p')
+                return 1e20
+            
             # y = rhovecVnew/rhovecVnew.sum()
             # pV = rhovecVnew.sum()*model.get_R(y)*T + model.get_pr(T, rhovecVnew)
-            p_err = (1-p/p_meas)*100
+            p_err = abs(1-p/p_meas)*100
+            # print(p_err)
             # if abs(pV/p-1) > 0.01:
             #     print('bad solver!', code, pV/p-1)
             if not np.isfinite(p_err):
