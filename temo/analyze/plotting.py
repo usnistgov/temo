@@ -275,7 +275,7 @@ def plot_px_history(*, root, uid, stepfiles, override=None):
 
                 plt.gca().set(xlabel=r'$x_{{\rm Ne}}$ / mol/mol', ylabel='$p$ / MPa', ylim=(0,3))
                 plt.legend(loc='best')
-                plt.title(f'{N} | C$\$$: {cost:0.4f}')
+                plt.title(rf'{N} | C$\$$: {cost:0.4f}')
                 PDF.savefig(plt.gcf())
                 plt.close()
                 previous_cost = cost
@@ -302,7 +302,7 @@ def plot_critical_locus_history(basemodel, *, stepfiles, override=None, dfcr=Non
 
                 plt.gca().set(xlabel=r'$x_{1}$ / mole frac.', ylabel='$p$ / MPa')
                 # plt.legend(loc='best')
-                plt.title(f'{N} | C$\$$: {cost:0.4f}')
+                plt.title(rf'{N} | C$\$$: {cost:0.4f}')
                 if ylim:
                     plt.ylim(*ylim)
                 PDF.savefig(plt.gcf())
