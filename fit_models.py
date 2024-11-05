@@ -277,31 +277,30 @@ if __name__ == '__main__':
     # Can be changed to false to run multiple fits in parallel
     serial = True
     
-    if serial:
-        # Serial
-        Ndep = 3
-        Npoly = Ndep
-        dvals = [1,2,3]
-        d = list(roundrobin(*repeat(dvals, 3)))[0:Ndep] # [1,1,2,2,3,3...]
-        kwargs = dict(Npoly=Npoly, Ngaussian=Ndep-Npoly, d=d, l=[1,1,1,1,2])
-        do_fit(pairs[0], 'Gaussian+Exponential', Ndep, root, dv=dv, mutant_kwargs=kwargs)
-    else:
-        # Call the spawner to fit in parallel
-        deptype = 'Gaussian+Exponential'
-        from spawn import Spawner
-        args = []
-        for pair in pairs:
-            for Ndep in range(3,6):
-                for Npoly in [Ndep]:#range(Ndep+1):
+    # Construct the list of arguments for the fitting
+    args = []
+    deptype = 'Gaussian+Exponential'
+    for pair in pairs:
+        for Ndep in range(3,6):
+            for Npoly in [Ndep]:#range(Ndep+1):
                     for N in range(4): # number of repeats
                         Ndep = Npoly
                         # Npoly = Ndep
                         dvals = [1,2,3,4,5,6]
                         d = list(roundrobin(*repeat(dvals, 3)))[0:Npoly] # [1,1,2,2,3,3...]
                         lvals = cycle([1, 1, 2])
-                        kwargs = dict(Npoly=Npoly, Ngaussian=Ndep-Npoly, d=d, l=[next(lvals) for _ in range(Npoly)])
-                        datavault_kwargs = get_dv_args(pair)
-                        args.append(dict(target=do_fit, args = [pair, deptype, Ndep, root], kwargs=dict(dv=datavault_kwargs, mutant_kwargs=kwargs)))
+                    kwargs = dict(Npoly=Npoly, Ngaussian=Ndep-Npoly, d=d, l=[next(lvals) for _ in range(Npoly)])
+                    datavault_kwargs = get_dv_args(pair)
+                    args.append(dict(target=do_fit, args = [pair, deptype, Ndep, root], kwargs=dict(dv=datavault_kwargs, mutant_kwargs=kwargs)))
+    print(args)
+    
+    if serial:
+        # Serial
+        for arg in args:
+            arg['target'](*arg['args'], **arg['kwargs'])
+    else:
+        # Call the spawner to fit in parallel
+        from spawn import Spawner
         spawner = Spawner(args, Nproc_max=16)
         print(spawner.run())
 
