@@ -361,15 +361,22 @@ class ModelAssessmentPlotter:
     stepfiles: List[Dict]
     last_stepfile: Dict 
 
-    def __init__(self, result_path, result_filter):
+    def __init__(self, *, results=None, result_path=None, result_filter, allow_noresults=True, teqp_data_path=teqp.get_datapath()):
         """
         Args:
-            result_path: The path to the results archive, strongly rtecommended to work from a .tar.xz archive, also .zip or path to folder (unzipped) are allowed
-            result_filter: A function that filters from the results down to the result that will be used for further post-processing
+            result_path: The path to the results archive, strongly recommended to work from a .tar.xz archive, also .zip or path to folder (unzipped) are allowed
+            result_filter: A function that filters from the results down to the result that will be used for further post-processing. The argument is the complete DataFrame, a DataFrame is returned
         """
-        self.results = ResultsParser(result_path)
+        if results and not result_path:
+            self.results = results
+        elif result_path and not results:
+            self.results = ResultsParser(result_path)
+        else:
+            raise ValueError("Wrong specification of results")
+        
         self.dfresults = result_filter(self.results.dfresults)
-        if len(self.dfresults) != 1:
+
+        if len(self.dfresults) != 1 and not allow_noresults:
             raise ValueError("Result DataFrame must be one element in length after filtering; current length is "+str(len(self.dfresults)))
         # Get the unique identifier for the run
         self.uid = self.dfresults.uid.iloc[0]
@@ -377,7 +384,7 @@ class ModelAssessmentPlotter:
         # Extract the stepfiles and store in the class
         self.stepfiles = self.results.get_stepfiles(self.uid)
         self.last_stepfile = self.stepfiles[-1]
-        self.model, self.basemodel, self.basemodels = build_mutant(self.pair, path=teqp.get_datapath(), spec=self.last_stepfile['model'])
+        self.model, self.basemodel, self.basemodels = build_mutant(self.pair, path=teqp_data_path, spec=self.last_stepfile['model'])
     
     def plot_cost_history(self, *, ax, stepfiles=None):
         """
