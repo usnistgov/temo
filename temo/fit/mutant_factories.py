@@ -59,7 +59,7 @@ def get_mutant_exponential(model, params, d=None, l=None):
 #     return get_mutant_exponential(model, params, d=d, l=l)
 
 def get_mutant_Gaussian(model, params, d=None):
-    """ 
+    r""" 
     Build a teqp-based Gaussian-bell-shaped mutant from the model parameters 
 
     Args:
@@ -129,7 +129,7 @@ def chunked_iterable(iterable, size):
         yield chunk
 
 def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=None, Nbg=4, bgindices=None):
-    """
+    r"""
     Build a teqp-based Gaussian+exponential mutant from the model parameters
     
     Args:
