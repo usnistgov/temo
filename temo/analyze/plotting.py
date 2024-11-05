@@ -67,7 +67,7 @@ class ResultsParser:
         returns the uid 
         """
         if prefilter:
-            df = self.dfresults[prefilter(self.dfresult)]
+            df = self.dfresults[prefilter(self.dfresults)]
         else:
             df = self.dfresults
         imin = np.argmin(np.array(df['cost']))
