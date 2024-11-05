@@ -1,3 +1,4 @@
+from typing import cast
 import pandas 
 import scipy.interpolate
 import teqp 
@@ -79,10 +80,12 @@ class BinaryVLEIsothermFitter:
         model = teqp.make_model({'kind': 'multifluid', 'model': jmodel})
         return model 
         
-    def trace_isotherm(self, gammaT:float=None, model:teqp.AbstractModel=None) -> pandas.DataFrame:
+    def trace_isotherm(self, gammaT:float|None=None, model:teqp.AbstractModel|None=None) -> pandas.DataFrame:
         """ Given either a model instance or a value of 𝛾_T, trace the isotherm"""
         if model is None:
-            model = self.build_model(gammaT)
+            if gammaT is None:
+                raise ValueError("gammaT must be specified if model is not")
+            model = self.build_model(gammaT=cast(float, gammaT))
         trace = pandas.DataFrame(model.trace_VLE_isotherm_binary(self.T_K, self.rhovecL0, self.rhovecV0))
         return trace
         
