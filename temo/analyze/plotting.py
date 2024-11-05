@@ -1,5 +1,6 @@
 from typing import List, Dict
 import tarfile, zipfile, json, glob, os
+from typing import cast, Any
 
 import pandas 
 import numpy as np
@@ -179,10 +180,16 @@ def calc_critical_curves(*, model, basemodel, ipure, integration_order, polish_r
     df = pandas.DataFrame(model.trace_critical_arclength_binary(T0, rhovec0, '', opt))
     return df
 
-def plot_criticality(*, model, Tlim, rholim, z_1, TN=100, rhoN=100, ax=None, show=True):
+from collections.abc import Sequence
+
+def plot_criticality(*, model, Tlim:Sequence[float], rholim:Sequence[float], z_1:float, TN:int=100, rhoN:int=100, ax=None, show=True):
+    """
+
+    """
+    
     z = np.array([z_1, 1-z_1])
-    Tvec = np.linspace(*Tlim, TN)
-    rhovec = np.geomspace(*rholim, rhoN)
+    Tvec = np.linspace(*cast(tuple[float,float], Tlim), TN)
+    rhovec = np.geomspace(*cast(tuple[float,float], rholim), rhoN)
     TT, DD = np.meshgrid(Tvec, rhovec)
     Nrow, Ncol = TT.shape
     C1 = np.zeros_like(TT)
@@ -220,7 +227,7 @@ def plot_criticality_constT(*, T, model, zlim=(0,1), rholim, zN=100, rhoN=100, a
     if show:
         plt.show()
 
-def isotherm(model, T, rhovecL, rhovecV, also_json=False, crit_threshold=5e-8) -> pandas.DataFrame:
+def isotherm(model, T, rhovecL, rhovecV, also_json=False, crit_threshold=5e-8) -> pandas.DataFrame | tuple[pandas.DataFrame, dict]:
     opt = teqp.TVLEOptions(); opt.polish=True; opt.integration_order=5; opt.calc_criticality = True
     opt.terminate_unstable = True; opt.max_steps=200; 
 
@@ -411,7 +418,7 @@ class ModelAssessmentPlotter:
 
         for comp, label in zip(z1_comps, labels):
             z = np.array([comp, 1-comp])
-            Tvec = np.linspace(*Trange)
+            Tvec = np.linspace(*cast(tuple[float,float],Trange))
             assert(len(Trange)==2)
             B12 = np.array([model.get_B12vir(T_, z) for T_ in Tvec])
             ax.plot(Tvec, B12, label=label)
@@ -419,7 +426,7 @@ class ModelAssessmentPlotter:
         ax.set_ylabel(r'$B_{12}$ / cm$^3$/mol')
         ax.legend(loc='best')
 
-    def plot_binary_VLE_isotherms(self, *, ax, Tvec: List[float], cmap, ipure, model=None, basemodel=None, options: Dict = None, plot_kwargs: Dict = {}):
+    def plot_binary_VLE_isotherms(self, *, ax, Tvec: List[float], cmap, ipure, model=None, basemodel=None, options: Dict|None = None, plot_kwargs: Dict = {}):
         """ 
         Args:
             ax: the axis onto which to plot
@@ -457,7 +464,7 @@ class ModelAssessmentPlotter:
         ax.set_ylabel('$p$ / MPa')
         ax.set_yscale('log')
 
-    def plot_binary_critical_locus(self, *, ax, kind, ipure, model=None, basemodel=None, options: Dict = None, plot_kwargs: Dict = {}):
+    def plot_binary_critical_locus(self, *, ax, kind, ipure, model=None, basemodel=None, options: Dict|None = None, plot_kwargs: Dict = {}):
         """ 
         Args:
             ax: the axis onto which to plot
@@ -476,8 +483,8 @@ class ModelAssessmentPlotter:
 
         Tcvec = basemodel.get_Tcvec()
         vcvec = basemodel.get_vcvec()
-        opt = {"alternative_pure_index": ipure, "alternative_length": 2}
-        [T0, rho0] = model.solve_pure_critical(Tcvec[ipure], 1.0/vcvec[ipure], opt)
+        pureflags:dict[str, Any] = {"alternative_pure_index": ipure, "alternative_length": 2}
+        [T0, rho0] = model.solve_pure_critical(Tcvec[ipure], 1.0/vcvec[ipure], pureflags)
         rhovec0 = np.array([0.0, 0])
         rhovec0[ipure] = rho0
 

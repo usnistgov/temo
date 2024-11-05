@@ -1,5 +1,6 @@
 import os, timeit, json, uuid, shutil, random, time
 from itertools import repeat, cycle, islice
+from typing import cast 
 
 def roundrobin(*iterables):
     "roundrobin('ABC', 'D', 'EF') --> A D E B F C"
@@ -237,7 +238,7 @@ if __name__ == '__main__':
     pairs = [('R32', 'R1234YF'),]
     dataroot = 'data/JPCRD2023'
 
-    os.environ['RPPREFIX'] = os.getenv('HOME') + '/REFPROP10'
+    os.environ['RPPREFIX'] = cast(str, os.getenv('HOME')) + '/REFPROP10'
     
     from ctREFPROP.ctREFPROP import REFPROPFunctionLibrary
     RP = REFPROPFunctionLibrary(os.getenv('RPPREFIX'))
