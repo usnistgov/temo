@@ -103,7 +103,7 @@ def add_coexisting_concentrations_REFPROP(df:pandas.DataFrame, *, RP:REFPROPFunc
         pandas.DataFrame: The updated DataFrame
     """
     # Store guess values for densities given the existing model in REFPROP
-    def add_rhos(row):
+    def add_rhos(row, kFLD1, kFLD2):
         T = row['T / K']
         if Q == 0:
             x_1 = row['x_1 / mole frac.']
@@ -113,7 +113,9 @@ def add_coexisting_concentrations_REFPROP(df:pandas.DataFrame, *, RP:REFPROPFunc
             z = np.array([y_1, 1-y_1])
         else:
             raise ValueError(Q)
-        r = RP.REFPROPdll('', 'QT','DLIQ,DVAP,P', RP.MOLAR_BASE_SI, 0,0,Q,T,z)
+        
+        r = RP.REFPROPdll(row[kFLD1]+'*'+row[kFLD2], 'QT','DLIQ,DVAP,P', RP.MOLAR_BASE_SI, 0,0,Q,T,z)
+            
         if r.ierr > 0:
             print('ERROR:', r.herr)
             return [np.nan]*5
@@ -121,6 +123,9 @@ def add_coexisting_concentrations_REFPROP(df:pandas.DataFrame, *, RP:REFPROPFunc
         P = r.Output[2]
         y = r.y
         return DLIQ*z[0], DLIQ*z[1], DVAP*y[0], DVAP*y[1], P
-    df[['rhoL_1 / mol/m^3', 'rhoL_2 / mol/m^3', 'rhoV_1 / mol/m^3', 'rhoV_2 / mol/m^3','p(EOS) / Pa']] = df.apply(add_rhos, axis=1, result_type='expand')
+
+    if 'FLD0' in df and 'FLD1' in df : kFLD1 = 'FLD0'; kFLD2 = 'FLD1'
+    if 'FLD1' in df and 'FLD2' in df : kFLD1 = 'FLD1'; kFLD2 = 'FLD2'
+    df[['rhoL_1 / mol/m^3', 'rhoL_2 / mol/m^3', 'rhoV_1 / mol/m^3', 'rhoV_2 / mol/m^3','p(EOS) / Pa']] = df.apply(add_rhos, axis=1, result_type='expand', kFLD1=kFLD1, kFLD2=kFLD2)
     df.loc[pandas.isnull(df['rhoL_1 / mol/m^3']), 'skip'] = "Iteration to get guess values didn't succeed"
     return df
