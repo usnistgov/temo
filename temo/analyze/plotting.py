@@ -34,8 +34,10 @@ class ResultsParser:
                 results = []
                 for info in tar.getmembers():
                     filename = info.name
-                    if 'step' not in filename and '.json' in filename:
+                    if 'step' not in filename and '.json' in filename and len(filename.split('/')) == 2:
                         results.append(json.load(tar.extractfile(info)))
+                        print(filename)
+                return results
 
         elif path.endswith('.zip'):
             with zipfile.ZipFile(path) as z:
@@ -44,6 +46,7 @@ class ResultsParser:
                     if 'step' not in filename and '.json' in filename:
                         with z.open(filename) as myfile:
                             results.append(json.load(myfile))
+                return results
 
         else:
             if not os.path.isdir(path):
@@ -116,6 +119,8 @@ class ResultsParser:
                     filename = info.name
                     if 'fitdataroot' in filename and key in filename:
                         return pandas.read_csv(tar.extractfile(info), **kwargs)
+        elif os.path.isdir(self.path):
+            return pandas.read_csv(self.path + f'/fitdataroot/{key}.csv')
         else:
             raise ValueError("zipfiles are not supported (don't compress as well as LZMA)'")
     
