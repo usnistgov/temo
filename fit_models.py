@@ -284,12 +284,12 @@ if __name__ == '__main__':
     for pair in pairs:
         for Ndep in range(3,6):
             for Npoly in [Ndep]:#range(Ndep+1):
-                    for N in range(4): # number of repeats
-                        Ndep = Npoly
-                        # Npoly = Ndep
-                        dvals = [1,2,3,4,5,6]
-                        d = list(roundrobin(*repeat(dvals, 3)))[0:Npoly] # [1,1,2,2,3,3...]
-                        lvals = cycle([1, 1, 2])
+                for N in range(4): # number of repeats
+                    Ndep = Npoly
+                    # Npoly = Ndep
+                    dvals = [1,2,3,4,5,6]
+                    d = list(roundrobin(*repeat(dvals, 3)))[0:Npoly] # [1,1,2,2,3,3...]
+                    lvals = cycle([1, 1, 2])
                     kwargs = dict(Npoly=Npoly, Ngaussian=Ndep-Npoly, d=d, l=[next(lvals) for _ in range(Npoly)])
                     datavault_kwargs = get_dv_args(pair)
                     args.append(dict(target=do_fit, args = [pair, deptype, Ndep, root], kwargs=dict(dv=datavault_kwargs, mutant_kwargs=kwargs)))
