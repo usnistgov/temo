@@ -154,12 +154,12 @@ class UidFilter:
 def build_mutant(teqp_names : List[str], path : str, spec: dict, *, flags=None):
     if flags is None:
         flags = {'estimate': 'Lorentz-Berthelot'}
+    puremodels = [teqp.build_multifluid_model([name], path, path+'/dev/mixtures/mixture_binary_pairs.json', flags) for name in teqp_names]
     basemodel = teqp.build_multifluid_model(teqp_names, path, path+'/dev/mixtures/mixture_binary_pairs.json', flags)
-    basemodels = [teqp.build_multifluid_model([name], path, path+'/dev/mixtures/mixture_binary_pairs.json', flags) for name in teqp_names]
 
     mutant = teqp.build_multifluid_mutant(basemodel, spec)
     teqp.attach_model_specific_methods(mutant)
-    return mutant, basemodel, basemodels
+    return mutant, basemodel, puremodels
 
 def calc_critical_curves(*, model, basemodel, ipure, integration_order, polish_reltol_T = 100, polish_reltol_rho=100):
     Tcvec = basemodel.get_Tcvec()
