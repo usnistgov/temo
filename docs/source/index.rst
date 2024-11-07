@@ -8,6 +8,7 @@ Welcome to temo's documentation!
    getting_started/index
    fitting/index
    post/index
+   changelog.rst
 
 Indices and tables
 ==================
