@@ -139,7 +139,7 @@ def get_mutant_exponentialGaussian(model, params, *, Npoly, Ngaussian, d=None,l=
         Ngaussian (int): number of Gaussian terms
         d (list, optional): set of exponents on delta, optional
         l (list, optional): set of exponents on delta in exponential, optional
-        Nbg (int, optinal): the number of beta and gamma parameters being fit, usually 4 to indicate that all four are being fit
+        Nbg (int, optional): the number of beta and gamma parameters being fit, usually 4 to indicate that all four are being fit
         bgindices (sequence, optional): the indices {0: betaT, 1: gammaT, 2: betaV, 3: gammaV} to be fit
 
     Term is of the form:
