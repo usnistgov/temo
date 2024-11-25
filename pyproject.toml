@@ -8,10 +8,8 @@
 # Choosing a build backend:
 # https://packaging.python.org/en/latest/tutorials/packaging-projects/#choosing-a-build-backend
 [build-system]
-# A list of packages that are needed to build your package:
-requires = ["setuptools"]  # REQUIRED if [build-system] table is used
-# The name of the Python object that frontends will use to perform the build:
-build-backend = "setuptools.build_meta"  # If not defined, then legacy behavior can happen.
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 # This is the name of your project. The first time you publish this
@@ -105,8 +103,9 @@ classifiers = [
   "Programming Language :: Python :: 3 :: Only",
 ]
 
-[tool.setuptools]
-packages = ["temo"]
+#[tool.hatch.build.targets.wheel]
+#packages = ["temo"]
+
 
 # List URLs that are relevant to your project
 #
