@@ -104,6 +104,8 @@ def calc_errSOS(model, df, *, step=1, max_iter=10):
         if Mw2RT < 0:
             return 1e6
         w = (Mw2RT*R*T/M)**0.5
+        if not np.isfinite(w):
+            return 1e20
 
         return (1-w/row['w / m/s'])*100
     return df.iloc[0:len(df):step].apply(o, axis=1)
