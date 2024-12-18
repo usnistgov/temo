@@ -88,13 +88,14 @@ def add_pure_crit_REFPROP(df, *, RP, ifluid):
     df[['rhoL_pure_1 / mol/m^3','rhoL_pure_2 / mol/m^3','rhoV_pure_1 / mol/m^3','rhoV_pure_2 / mol/m^3']] = df.apply(add, axis=1, result_type='expand')
     return df
 
-def add_coexisting_concentrations_REFPROP(df:pandas.DataFrame, *, RP:REFPROPFunctionLibrary, Q:float=0) -> pandas.DataFrame:
+def add_coexisting_concentrations_REFPROP(df:pandas.DataFrame, *, RP:REFPROPFunctionLibrary, Q:float=0, FLDname:str) -> pandas.DataFrame:
     """Add co-existing VLE densities for each row with the model from REFPROP
 
     Args:
         df (pandas.DataFrame): The starting DataFrame 
         RP (REFPROPFunctionLibrary): The REFPROP instance (with the Python interface) to be used for the phase equilibrium calculations 
         Q (float, optional): Molar vapor quality to be used for the phase equilibrium calculation. Defaults to 0.
+        FLDname(str, optional): If provided, use this string as the argument to REFPROP for hFLD
 
     Raises:
         ValueError: If the vapor quality is invalid
@@ -114,7 +115,8 @@ def add_coexisting_concentrations_REFPROP(df:pandas.DataFrame, *, RP:REFPROPFunc
         else:
             raise ValueError(Q)
         
-        r = RP.REFPROPdll(row[kFLD1]+'*'+row[kFLD2], 'QT','DLIQ,DVAP,P', RP.MOLAR_BASE_SI, 0,0,Q,T,z)
+        hFLD = FLDname if FLDname is not None else row[kFLD1]+'*'+row[kFLD2]
+        r = RP.REFPROPdll(hFLD, 'QT','DLIQ,DVAP,P', RP.MOLAR_BASE_SI, 0,0,Q,T,z)
             
         if r.ierr > 0:
             print('ERROR:', r.herr)
