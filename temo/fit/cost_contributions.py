@@ -184,17 +184,21 @@ def calc_errVLE(model, df, *, step=1):
                 code, rhovecLnew, rhovecVnew = model.mix_VLE_Tx(T, rhovecL, rhovecV, z, 1e-8, 1e-8, 1e-8, 1e-8, 20)
             else:
                 code, rhovecVnew, rhovecLnew = model.mix_VLE_Tx(T, rhovecV, rhovecL, z, 1e-8, 1e-8, 1e-8, 1e-8, 20)
-
+            # print(rhovecL, rhovecV, 'LV]]')
+            
+            # print('----->', rhovecLnew, rhovecVnew, 'LV after]')
             if sum(~np.isfinite(rhovecLnew)) > 0:
                 return 1e20
             if sum(~np.isfinite(rhovecVnew)) > 0:
                 return 1e20
             # Check for trivial solutions and penalize them
             if np.max(np.abs(rhovecLnew - rhovecVnew)) < 1e-6*np.sum(rhovecLnew):
+                print('trivial solution')
                 return 1e20
+            # Check for invalid pressures
             p = rhovecLnew.sum()*model.get_R(z)*T*(1+model.get_Ar01(T, rhovecLnew.sum(), z))
             if not np.isfinite(p):
-                # print('not finite p')
+                print('not finite p')
                 return 1e20
             
             # y = rhovecVnew/rhovecVnew.sum()
