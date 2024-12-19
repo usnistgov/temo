@@ -88,7 +88,7 @@ def add_pure_crit_REFPROP(df, *, RP, ifluid):
     df[['rhoL_pure_1 / mol/m^3','rhoL_pure_2 / mol/m^3','rhoV_pure_1 / mol/m^3','rhoV_pure_2 / mol/m^3']] = df.apply(add, axis=1, result_type='expand')
     return df
 
-def add_coexisting_concentrations_REFPROP(df:pandas.DataFrame, *, RP:REFPROPFunctionLibrary, Q:float=0, FLDname:str) -> pandas.DataFrame:
+def add_coexisting_concentrations_REFPROP(df:pandas.DataFrame, *, RP:REFPROPFunctionLibrary, Q:float=0, FLDname:str=None) -> pandas.DataFrame:
     """Add co-existing VLE densities for each row with the model from REFPROP
 
     Args:
